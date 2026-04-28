@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Враги и друзья железа</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --bg-1: #fff5f0;
+    --bg-2: #ffe4d2;
+    --bg-3: #ffc9a8;
+    --text-primary: #2b1810;
+    --text-secondary: #6b4436;
+    --text-muted: #4a2e24;
+    --accent: #8b2c1a;
+    --accent-dark: #c1121f;
+    --red: #e63946;
+    --red-dark: #c1121f;
+    --green: #06d6a0;
+    --green-dark: #059669;
+    --yellow: #ffd60a;
+    --orange: #f77f00;
+    --purple: #9b5de5;
+    --card-bg: #ffffff;
+    --card-shadow: 0 20px 50px rgba(139, 44, 26, 0.18), 0 8px 16px rgba(139, 44, 26, 0.08);
+    --surface: rgba(255, 255, 255, 0.75);
+    --surface-strong: rgba(255, 255, 255, 0.95);
+    --divider: rgba(139, 44, 26, 0.12);
+    --feedback-bg: rgba(43, 24, 16, 0.92);
+  }
+  
+  body.dark {
+    --bg-1: #1a0f0c;
+    --bg-2: #2a1510;
+    --bg-3: #3d1f18;
+    --text-primary: #fff5f0;
+    --text-secondary: #c9a89a;
+    --text-muted: #d9b9ab;
+    --accent: #ff8a65;
+    --accent-dark: #ff6b4a;
+    --card-bg: #3d2318;
+    --card-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    --surface: rgba(61, 35, 24, 0.7);
+    --surface-strong: rgba(61, 35, 24, 0.95);
+    --divider: rgba(255, 138, 101, 0.2);
+    --feedback-bg: rgba(10, 5, 3, 0.94);
+  }
+  
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: 
+      radial-gradient(ellipse at top, var(--bg-1) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, var(--bg-3) 0%, transparent 60%),
+      linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+    color: var(--text-primary);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--orange), transparent);
+    top: -100px; left: -100px;
+    animation: float1 20s ease-in-out infinite;
+  }
+  body::after {
+    width: 250px; height: 250px;
+    background: radial-gradient(circle, var(--red), transparent);
+    bottom: -80px; right: -80px;
+    animation: float2 25s ease-in-out infinite;
+  }
+  body.dark::before, body.dark::after { opacity: 0.2; }
+  
+  @keyframes float1 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(50px, 80px); }
+  }
+  @keyframes float2 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-50px, -60px); }
+  }
+  
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  
+  .screen {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    animation: fadeIn 0.4s ease;
+    overflow-y: auto;
+  }
+  
+  .screen.active { display: flex; }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* === SPLASH === */
+  #splash { justify-content: center; align-items: center; text-align: center; }
+  
+  .splash-logo {
+    width: 120px; height: 120px;
+    margin-bottom: 8px;
+    animation: float-logo 4s ease-in-out infinite;
+    filter: drop-shadow(0 12px 24px rgba(230, 57, 70, 0.3));
+  }
+  
+  @keyframes float-logo {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+  }
+  
+  .splash-title {
+    font-size: 30px; font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--red-dark));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px; line-height: 1.1; letter-spacing: -0.5px;
+  }
+  
+  .splash-subtitle {
+    font-size: 16px; font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 24px; line-height: 1.4; max-width: 320px;
+  }
+  
+  .rules {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--divider);
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 24px;
+    text-align: left;
+    width: 100%; max-width: 340px;
+    box-shadow: 0 8px 24px rgba(139, 44, 26, 0.08);
+  }
+  
+  .rules-title {
+    font-size: 13px; font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 14px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  
+  .rule {
+    font-size: 15px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+    color: var(--text-muted); font-weight: 600;
+  }
+  
+  .rule:last-child { margin-bottom: 0; }
+  
+  .rule-icon {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(230, 57, 70, 0.1), rgba(247, 127, 0, 0.1));
+    border-radius: 10px; font-size: 18px;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+    color: white; border: none;
+    padding: 18px 56px;
+    border-radius: 100px;
+    font-family: inherit; font-size: 18px; font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(230, 57, 70, 0.45), 0 4px 8px rgba(230, 57, 70, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    min-height: 44px; letter-spacing: 0.3px;
+  }
+  
+  .btn-primary:active {
+    transform: scale(0.96) translateY(2px);
+    box-shadow: 0 6px 16px rgba(230, 57, 70, 0.4);
+  }
+  
+  /* === GAME === */
+  #game { padding: 14px 16px; overflow: hidden; }
+  
+  .game-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; padding: 0 4px;
+  }
+  
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  
+  .lives { font-size: 20px; letter-spacing: 1.5px; }
+  
+  .level-badge {
+    background: linear-gradient(135deg, var(--purple), var(--red));
+    color: white;
+    font-size: 11px; font-weight: 900;
+    padding: 4px 10px;
+    border-radius: 100px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(155, 93, 229, 0.4);
+    animation: pulse-badge 2s ease infinite;
+  }
+  
+  @keyframes pulse-badge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  .score-box {
+    background: var(--surface-strong);
+    backdrop-filter: blur(10px);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-weight: 800; font-size: 15px;
+    color: var(--accent);
+    box-shadow: 0 4px 12px rgba(139, 44, 26, 0.12);
+    display: flex; align-items: center; gap: 4px;
+  }
+  
+  .pause-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface-strong);
+    border: 1px solid var(--divider);
+    color: var(--accent);
+    font-size: 18px; font-weight: 900;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s ease;
+    box-shadow: 0 4px 12px rgba(139, 44, 26, 0.12);
+    padding: 0; line-height: 1;
+  }
+  
+  .pause-btn:active { transform: scale(0.9); }
+  
+  .progress-info {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 6px; padding: 0 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  
+  .progress-bar {
+    height: 6px;
+    background: var(--divider);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--orange));
+    border-radius: 100px;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 12px rgba(230, 57, 70, 0.5);
+  }
+  
+  .level-2 .progress-fill {
+    background: linear-gradient(90deg, var(--purple), var(--red));
+    box-shadow: 0 0 12px rgba(155, 93, 229, 0.5);
+  }
+  
+  .timer-bar {
+    height: 5px;
+    background: var(--divider);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  
+  .timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+    border-radius: 100px;
+    width: 100%;
+    transform-origin: left;
+    box-shadow: 0 0 8px rgba(255, 214, 10, 0.4);
+  }
+  
+  .level-2 .timer-fill {
+    background: linear-gradient(90deg, var(--orange), var(--red), var(--purple));
+    box-shadow: 0 0 12px rgba(230, 57, 70, 0.6);
+  }
+  
+  .card-area {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; min-height: 0;
+  }
+  
+  .card {
+    background: var(--card-bg);
+    border-radius: 32px;
+    padding: 24px 20px;
+    width: 100%; max-width: 340px;
+    aspect-ratio: 3 / 4;
+    max-height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    text-align: center;
+    box-shadow: var(--card-shadow);
+    position: relative; overflow: hidden;
+    transition: transform 0.1s ease;
+    cursor: grab;
+    border: 1px solid var(--divider);
+  }
+  
+  .card.dragging { cursor: grabbing; transition: none; }
+  
+  .card-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .card-blob-1 {
+    width: 180px; height: 180px;
+    top: -60px; left: -60px;
+    background: radial-gradient(circle, rgba(255, 214, 10, 0.6), transparent);
+  }
+  
+  .card-blob-2 {
+    width: 200px; height: 200px;
+    bottom: -80px; right: -80px;
+    background: radial-gradient(circle, rgba(230, 57, 70, 0.4), transparent);
+  }
+  
+  body.dark .card-blob-1 {
+    background: radial-gradient(circle, rgba(255, 138, 101, 0.4), transparent);
+  }
+  body.dark .card-blob-2 {
+    background: radial-gradient(circle, rgba(155, 93, 229, 0.3), transparent);
+  }
+  
+  .card-illustration {
+    position: relative; z-index: 1;
+    width: 160px; height: 160px;
+    flex-shrink: 0;
+    margin-top: 32px;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.12));
+  }
+  
+  .card-illustration svg { width: 100%; height: 100%; }
+  
+  .card-content { position: relative; z-index: 1; width: 100%; }
+  
+  .card-name {
+    font-size: 22px; font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2; padding: 0 8px;
+    margin-bottom: 8px;
+  }
+  
+  .card-category {
+    display: inline-block;
+    background: var(--divider);
+    color: var(--text-secondary);
+    font-size: 11px; font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 100px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  
+  .swipe-hint {
+    position: absolute;
+    top: 24px;
+    padding: 10px 18px;
+    border-radius: 100px;
+    font-weight: 900; font-size: 15px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    text-transform: uppercase; letter-spacing: 1px;
+    z-index: 5;
+  }
+  
+  .swipe-hint.left {
+    left: 20px;
+    background: var(--red); color: white;
+    transform: rotate(-12deg);
+    box-shadow: 0 8px 16px rgba(230, 57, 70, 0.4);
+  }
+  
+  .swipe-hint.right {
+    right: 20px;
+    background: var(--green); color: white;
+    transform: rotate(12deg);
+    box-shadow: 0 8px 16px rgba(6, 214, 160, 0.4);
+  }
+  
+  .streak-badge {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--yellow), var(--orange));
+    color: var(--accent);
+    padding: 9px 18px;
+    border-radius: 100px;
+    font-weight: 900; font-size: 15px;
+    box-shadow: 0 8px 20px rgba(247, 127, 0, 0.5);
+    white-space: nowrap;
+    animation: pop 0.4s ease;
+    z-index: 6;
+    border: 2px solid #fff;
+    letter-spacing: 0.3px;
+  }
+  
+  @keyframes pop {
+    0% { transform: translateX(-50%) scale(0); }
+    70% { transform: translateX(-50%) scale(1.2); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+  
+  .actions {
+    display: flex; gap: 12px;
+    padding: 14px 4px 4px;
+  }
+  
+  .action-btn {
+    flex: 1;
+    padding: 16px;
+    border-radius: 20px;
+    border: none;
+    font-family: inherit; font-size: 16px; font-weight: 800;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    min-height: 44px;
+  }
+  
+  .action-btn:active { transform: scale(0.95); }
+  
+  .action-btn.enemy {
+    background: linear-gradient(135deg, var(--red), var(--red-dark));
+    color: white;
+    box-shadow: 0 8px 20px rgba(230, 57, 70, 0.35);
+  }
+  
+  .action-btn.friend {
+    background: linear-gradient(135deg, var(--green), var(--green-dark));
+    color: white;
+    box-shadow: 0 8px 20px rgba(6, 214, 160, 0.35);
+  }
+  
+  .action-btn.neutral {
+    background: linear-gradient(135deg, var(--yellow), var(--orange));
+    color: var(--accent);
+    box-shadow: 0 8px 20px rgba(247, 127, 0, 0.35);
+  }
+  
+  .action-btn .icon { font-size: 22px; }
+  .action-btn .label { font-size: 13px; font-weight: 800; }
+  
+  .actions.three-options .action-btn { padding: 12px 6px; }
+  .actions.three-options .action-btn .icon { font-size: 18px; }
+  .actions.three-options .action-btn .label { font-size: 11px; }
+  
+  /* === FEEDBACK OVERLAY === */
+  .feedback-overlay {
+    position: absolute; inset: 0;
+    background: var(--feedback-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    z-index: 10;
+    animation: fadeIn 0.25s ease;
+    border-radius: 32px;
+  }
+  
+  .feedback-overlay.show { display: flex; }
+  
+  .feedback-flash {
+    position: absolute; inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 32px;
+  }
+  
+  .feedback-flash.correct {
+    background: radial-gradient(circle, rgba(6, 214, 160, 0.5) 0%, transparent 70%);
+    animation: flash 0.6s ease-out;
+  }
+  
+  .feedback-flash.wrong {
+    background: radial-gradient(circle, rgba(230, 57, 70, 0.5) 0%, transparent 70%);
+    animation: flash 0.6s ease-out;
+  }
+  
+  @keyframes flash {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  
+  .feedback-icon {
+    font-size: 64px;
+    margin-bottom: 8px;
+    animation: pop 0.4s ease;
+  }
+  
+  .feedback-title {
+    font-size: 24px; font-weight: 900;
+    color: white;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: -0.3px;
+  }
+  
+  .feedback-title.correct { color: var(--green); }
+  .feedback-title.wrong { color: #ff6b6b; }
+  .feedback-title.neutral-title { color: var(--yellow); }
+  
+  .feedback-explanation {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 16px;
+    font-size: 14px; line-height: 1.5;
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: center;
+    max-width: 300px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  }
+  
+  .feedback-points {
+    background: linear-gradient(135deg, var(--yellow), var(--orange));
+    color: var(--accent);
+    padding: 8px 18px;
+    border-radius: 100px;
+    font-weight: 900;
+    margin-top: 10px;
+    font-size: 14px;
+    box-shadow: 0 6px 16px rgba(247, 127, 0, 0.4);
+  }
+  
+  .feedback-continue {
+    background: white;
+    color: var(--accent);
+    border: none;
+    padding: 12px 26px;
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 14px; font-weight: 800;
+    cursor: pointer;
+    margin-top: 14px;
+    min-height: 44px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  }
+  
+  .feedback-continue:active { transform: scale(0.96); }
+  
+  /* === LEVEL UP === */
+  #levelup { justify-content: center; align-items: center; text-align: center; }
+  
+  .lvlup-flash {
+    position: absolute;
+    top: 30%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px; font-weight: 900;
+    color: var(--purple);
+    text-transform: uppercase; letter-spacing: 4px;
+    opacity: 0;
+    animation: lvlup-flash 0.8s ease 0.2s forwards;
+  }
+  
+  @keyframes lvlup-flash {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  
+  .lvlup-emoji {
+    font-size: 100px;
+    margin-bottom: 14px;
+    animation: bounce-rotate 1.5s ease infinite;
+    filter: drop-shadow(0 12px 24px rgba(155, 93, 229, 0.4));
+  }
+  
+  @keyframes bounce-rotate {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+  }
+  
+  .lvlup-title {
+    font-size: 36px; font-weight: 900;
+    background: linear-gradient(135deg, var(--purple), var(--red));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px; letter-spacing: -1px;
+  }
+  
+  .lvlup-message {
+    font-size: 17px; font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    max-width: 320px; line-height: 1.4;
+  }
+  
+  .lvlup-rules {
+    background: var(--surface-strong);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    width: 100%; max-width: 340px;
+    box-shadow: 0 12px 32px rgba(155, 93, 229, 0.15);
+    border: 1px solid var(--divider);
+  }
+  
+  .lvlup-rule {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--divider);
+    font-weight: 700;
+  }
+  
+  .lvlup-rule:last-child { border-bottom: none; }
+  
+  .lvlup-rule-label { color: var(--text-muted); font-size: 14px; }
+  .lvlup-rule-value { color: var(--accent); font-size: 16px; font-weight: 900; }
+  
+  .lvlup-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%; max-width: 340px;
+    margin-bottom: 24px;
+  }
+  
+  .lvlup-stat {
+    background: var(--card-bg);
+    padding: 12px 6px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid var(--divider);
+  }
+  
+  .lvlup-stat-value { font-size: 20px; font-weight: 900; color: var(--accent); }
+  .lvlup-stat-label {
+    font-size: 11px; color: var(--text-secondary);
+    font-weight: 700; text-transform: uppercase; margin-top: 2px;
+  }
+  
+  .lvlup-btn {
+    background: linear-gradient(135deg, var(--purple), var(--red));
+    color: white; border: none;
+    padding: 18px 56px;
+    border-radius: 100px;
+    font-family: inherit; font-size: 17px; font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(155, 93, 229, 0.45);
+    transition: transform 0.15s ease;
+    min-height: 44px;
+  }
+  
+  .lvlup-btn:active { transform: scale(0.96); }
+  
+  /* === REWARD === */
+  #reward {
+    justify-content: center; align-items: center; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  
+  .confetti {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .confetti span {
+    position: absolute;
+    width: 10px; height: 14px;
+    border-radius: 2px;
+    animation: confetti-fall linear infinite;
+    opacity: 0.85;
+  }
+  
+  @keyframes confetti-fall {
+    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+  
+  .reward-content {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    width: 100%; max-width: 360px;
+  }
+  
+  .reward-burst {
+    position: relative;
+    width: 200px; height: 200px;
+    margin-bottom: 8px;
+  }
+  
+  .reward-burst::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle, var(--yellow) 0%, transparent 70%);
+    filter: blur(30px);
+    animation: pulse-glow 2s ease infinite;
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 0.9; }
+  }
+  
+  .reward-emoji {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 110px;
+    animation: bounce-rotate 1.5s ease infinite;
+    filter: drop-shadow(0 10px 24px rgba(247, 127, 0, 0.5));
+  }
+  
+  .reward-label {
+    font-size: 13px; font-weight: 900;
+    color: var(--orange);
+    text-transform: uppercase; letter-spacing: 4px;
+    margin-bottom: 8px;
+    animation: fadeIn 0.6s ease 0.3s both;
+  }
+  
+  .reward-title {
+    font-size: 36px; font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--red), var(--orange));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 14px; line-height: 1;
+    letter-spacing: -1.5px;
+    animation: fadeIn 0.6s ease 0.4s both;
+  }
+  
+  .reward-discount {
+    background: linear-gradient(135deg, var(--yellow), var(--orange));
+    color: var(--accent);
+    font-size: 64px; font-weight: 900;
+    padding: 16px 36px;
+    border-radius: 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 16px 40px rgba(247, 127, 0, 0.45);
+    line-height: 1;
+    animation: pop 0.6s ease 0.5s both;
+    border: 4px solid #fff;
+    letter-spacing: -2px;
+  }
+  
+  .reward-message {
+    font-size: 16px; font-weight: 700;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 320px;
+    margin-bottom: 24px;
+    animation: fadeIn 0.6s ease 0.6s both;
+  }
+  
+  .reward-message b { color: var(--accent); }
+  
+  .reward-hint {
+    background: linear-gradient(135deg, rgba(155, 93, 229, 0.12), rgba(247, 127, 0, 0.12));
+    border: 2px dashed var(--orange);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    max-width: 320px; width: 100%;
+    text-align: left;
+    animation: fadeIn 0.6s ease 0.65s both;
+  }
+  
+  .reward-hint-title {
+    font-size: 12px; font-weight: 900;
+    color: var(--orange);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  
+  .reward-hint-text {
+    font-size: 14px; font-weight: 600;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  
+  .reward-hint-text b { color: var(--accent); font-weight: 800; }
+  
+  .reward-hint-cta {
+    display: inline-block;
+    margin-top: 8px;
+    background: var(--yellow);
+    color: var(--accent);
+    font-weight: 900; font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 100px;
+    box-shadow: 0 4px 10px rgba(247, 127, 0, 0.3);
+  }
+  
+  .reward-btn {
+    background: linear-gradient(135deg, var(--accent), var(--red-dark));
+    color: white; border: none;
+    padding: 18px 48px;
+    border-radius: 100px;
+    font-family: inherit; font-size: 17px; font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 32px rgba(139, 44, 26, 0.45);
+    transition: transform 0.15s ease;
+    min-height: 44px;
+    animation: fadeIn 0.6s ease 0.7s both;
+  }
+  
+  .reward-btn:active { transform: scale(0.96); }
+  
+  .reward-skip {
+    background: transparent;
+    color: var(--text-secondary); border: none;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    animation: fadeIn 0.6s ease 0.8s both;
+  }
+  
+  .discount-tag {
+    background: var(--yellow);
+    color: var(--accent);
+    font-size: 12px; font-weight: 900;
+    padding: 4px 8px;
+    border-radius: 8px;
+    margin-left: 6px;
+    box-shadow: 0 2px 6px rgba(247, 127, 0, 0.4);
+    flex-shrink: 0;
+  }
+  
+  /* === FINAL === */
+  #final {
+    justify-content: flex-start;
+    align-items: center; text-align: center;
+    padding-top: 24px; padding-bottom: 24px;
+  }
+  
+  .final-emoji {
+    font-size: 84px;
+    margin-bottom: 10px;
+    animation: bounce 2s ease infinite;
+    filter: drop-shadow(0 8px 20px rgba(139, 44, 26, 0.3));
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .final-level {
+    font-size: 26px; font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--red-dark));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  
+  .final-message {
+    font-size: 15px; color: var(--text-secondary);
+    margin-bottom: 18px;
+    max-width: 320px; line-height: 1.4;
+    font-weight: 600;
+  }
+  
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%; max-width: 340px;
+    margin-bottom: 20px;
+  }
+  
+  .stat {
+    background: var(--card-bg);
+    padding: 12px 6px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid var(--divider);
+  }
+  
+  .stat-value { font-size: 20px; font-weight: 900; color: var(--accent); }
+  .stat-label {
+    font-size: 11px; color: var(--text-secondary);
+    font-weight: 700; text-transform: uppercase; margin-top: 2px;
+  }
+  
+  .cta-block {
+    width: 100%; max-width: 340px;
+    display: flex; flex-direction: column; gap: 10px;
+    margin-bottom: 16px;
+  }
+  
+  .cta-primary {
+    background: linear-gradient(135deg, var(--accent), var(--red-dark));
+    color: white; border: none;
+    padding: 18px 20px;
+    border-radius: 20px;
+    font-family: inherit; font-size: 16px; font-weight: 800;
+    cursor: pointer;
+    line-height: 1.3; text-align: left;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    box-shadow: 0 12px 28px rgba(139, 44, 26, 0.35);
+    transition: transform 0.1s ease;
+    min-height: 44px;
+  }
+  
+  .cta-primary:active { transform: scale(0.98); }
+  .cta-primary .arrow { font-size: 22px; flex-shrink: 0; }
+  
+  .cta-secondary {
+    background: var(--card-bg);
+    color: var(--accent);
+    border: 2px solid var(--divider);
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    transition: transform 0.1s ease;
+    min-height: 44px;
+  }
+  
+  .cta-secondary:active { transform: scale(0.98); }
+  
+  .replay-btn {
+    background: transparent;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    padding: 12px 32px;
+    border-radius: 100px;
+    font-family: inherit; font-size: 15px; font-weight: 800;
+    cursor: pointer;
+    min-height: 44px;
+  }
+  
+  .replay-btn:active { transform: scale(0.96); }
+  
+  /* Card fly */
+  .card.fly-right {
+    transform: translateX(150%) rotate(30deg) !important;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    opacity: 0;
+  }
+  
+  .card.fly-left {
+    transform: translateX(-150%) rotate(-30deg) !important;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    opacity: 0;
+  }
+  
+  .card.fly-up {
+    transform: translateY(-150%) !important;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    opacity: 0;
+  }
+  
+  /* === PAUSE MODAL === */
+  .pause-overlay {
+    position: fixed; inset: 0;
+    background: rgba(43, 24, 16, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.2s ease;
+    padding: 20px;
+  }
+  
+  .pause-overlay.show { display: flex; }
+  
+  .pause-modal {
+    background: var(--card-bg);
+    border-radius: 28px;
+    padding: 32px 24px;
+    width: 100%; max-width: 320px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    border: 1px solid var(--divider);
+    animation: pop-modal 0.3s ease;
+  }
+  
+  @keyframes pop-modal {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  .pause-icon { font-size: 56px; margin-bottom: 8px; }
+  
+  .pause-title {
+    font-size: 26px; font-weight: 900;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  
+  .pause-subtitle {
+    font-size: 14px; color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  
+  .pause-actions {
+    display: flex; flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pause-action {
+    padding: 14px 20px;
+    border-radius: 16px;
+    border: none;
+    font-family: inherit;
+    font-size: 15px; font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    min-height: 44px;
+  }
+  
+  .pause-action:active { transform: scale(0.97); }
+  
+  .pause-action.primary {
+    background: linear-gradient(135deg, var(--green), var(--green-dark));
+    color: white;
+    box-shadow: 0 8px 20px rgba(6, 214, 160, 0.35);
+  }
+  
+  .pause-action.secondary {
+    background: var(--surface);
+    color: var(--accent);
+    border: 2px solid var(--divider);
+  }
+  
+  .pause-action.danger {
+    background: transparent;
+    color: var(--red);
+    border: 2px solid var(--red);
+  }
+  
+  @media (max-height: 720px) {
+    .card-illustration { width: 130px; height: 130px; margin-top: 24px; }
+    .card-name { font-size: 19px; }
+    .splash-logo { width: 100px; height: 100px; }
+    .splash-title { font-size: 24px; }
+    .splash-subtitle { font-size: 14px; margin-bottom: 16px; }
+    .lvlup-emoji { font-size: 72px; }
+    .lvlup-title { font-size: 28px; }
+    .final-emoji { font-size: 64px; }
+    .final-level { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  
+  <!-- SPLASH -->
+  <div class="screen active" id="splash">
+    <svg class="splash-logo" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="dropGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ff6b6b"/>
+          <stop offset="100%" stop-color="#c1121f"/>
+        </linearGradient>
+        <radialGradient id="dropShine" cx="35%" cy="30%">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <path d="M60 10 Q60 10 30 55 Q15 85 35 100 Q60 115 85 100 Q105 85 90 55 Q60 10 60 10 Z" fill="url(#dropGrad)" stroke="#8b2c1a" stroke-width="2.5"/>
+      <ellipse cx="48" cy="50" rx="14" ry="20" fill="url(#dropShine)"/>
+      <text x="60" y="78" text-anchor="middle" font-family="Nunito" font-size="32" font-weight="900" fill="white">Fe</text>
+    </svg>
+    <h1 class="splash-title">Враги и друзья железа</h1>
+    <p class="splash-subtitle">40 карточек - проверь, что помогает, а что мешает усвоению железа</p>
+    
+    <div class="rules">
+      <div class="rules-title">Как играть</div>
+      <div class="rule"><span class="rule-icon">👉</span><span>Свайпай вправо - <b>друг</b></span></div>
+      <div class="rule"><span class="rule-icon">👈</span><span>Свайпай влево - <b>враг</b></span></div>
+      <div class="rule"><span class="rule-icon">⚡</span><span>5 секунд на ответ</span></div>
+      <div class="rule"><span class="rule-icon">❤️</span><span>3 жизни. После 20-й - бонус!</span></div>
+      <div class="rule"><span class="rule-icon">🎁</span><span>75% верно - <b>скидка 25%</b><br>100% верно - <b>скидка 50%</b></span></div>
+    </div>
+    
+    <button class="btn-primary" onclick="startGame()">Начать</button>
+  </div>
+  
+  <!-- GAME -->
+  <div class="screen" id="game">
+    <div class="game-header">
+      <div class="header-left">
+        <div class="lives" id="lives">❤️❤️❤️</div>
+        <div class="level-badge" id="levelBadge" style="display:none;">Уровень 2</div>
+      </div>
+      <div class="header-right">
+        <div class="score-box">⭐ <span id="score">0</span></div>
+        <button class="pause-btn" onclick="pauseGame()" aria-label="Пауза">✕</button>
+      </div>
+    </div>
+    
+    <div class="progress-info">
+      <span>Карточка <span id="cardNum">1</span>/40</span>
+      <span id="streakText"></span>
+    </div>
+    
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 2.5%"></div>
+    </div>
+    
+    <div class="timer-bar">
+      <div class="timer-fill" id="timerFill"></div>
+    </div>
+    
+    <div class="card-area">
+      <div class="card" id="card">
+        <div class="card-blob card-blob-1"></div>
+        <div class="card-blob card-blob-2"></div>
+        <div class="swipe-hint left">👎 Враг</div>
+        <div class="swipe-hint right">👍 Друг</div>
+        <div class="streak-badge" id="streakBadge" style="display:none;">🔥 Серия x3!</div>
+        <div class="card-illustration" id="cardIllustration"></div>
+        <div class="card-content">
+          <div class="card-name" id="cardName">Кофе сразу после еды</div>
+          <div class="card-category" id="cardCategory">Напиток</div>
+        </div>
+      </div>
+      
+      <div class="feedback-overlay" id="feedback">
+        <div class="feedback-flash" id="feedbackFlash"></div>
+        <div class="feedback-icon" id="feedbackIcon">✅</div>
+        <div class="feedback-title" id="feedbackTitle">Правильно!</div>
+        <div class="feedback-explanation" id="feedbackExplanation"></div>
+        <div class="feedback-points" id="feedbackPoints">+100 очков</div>
+        <button class="feedback-continue" onclick="skipFeedback()">Понятно →</button>
+      </div>
+    </div>
+    
+    <div class="actions" id="actions">
+      <button class="action-btn enemy" onclick="answer('enemy')">
+        <span class="icon">👎</span>
+        <span class="label">Враг</span>
+      </button>
+      <button class="action-btn friend" onclick="answer('friend')">
+        <span class="icon">👍</span>
+        <span class="label">Друг</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- LEVEL UP -->
+  <div class="screen" id="levelup">
+    <div class="lvlup-flash">Level up</div>
+    <div class="lvlup-emoji">🚀</div>
+    <h2 class="lvlup-title">Уровень 2!</h2>
+    <p class="lvlup-message">Ты прошла половину. Время для настоящего вызова!</p>
+    
+    <div class="lvlup-rules">
+      <div class="lvlup-rule">
+        <span class="lvlup-rule-label">❤️ Бонус</span>
+        <span class="lvlup-rule-value">+3 жизни</span>
+      </div>
+      <div class="lvlup-rule">
+        <span class="lvlup-rule-label">⚡ Время на ответ</span>
+        <span class="lvlup-rule-value">3 сек</span>
+      </div>
+      <div class="lvlup-rule">
+        <span class="lvlup-rule-label">⭐ Очки</span>
+        <span class="lvlup-rule-value">×2</span>
+      </div>
+    </div>
+    
+    <div class="lvlup-stats">
+      <div class="lvlup-stat">
+        <div class="lvlup-stat-value" id="lvlScore">0</div>
+        <div class="lvlup-stat-label">Очки</div>
+      </div>
+      <div class="lvlup-stat">
+        <div class="lvlup-stat-value" id="lvlCorrect">0/20</div>
+        <div class="lvlup-stat-label">Верно</div>
+      </div>
+      <div class="lvlup-stat">
+        <div class="lvlup-stat-value" id="lvlStreak">0</div>
+        <div class="lvlup-stat-label">Серия</div>
+      </div>
+    </div>
+    
+    <button class="lvlup-btn" onclick="continueToLevel2()">Продолжить →</button>
+  </div>
+  
+  <!-- REWARD -->
+  <div class="screen" id="reward">
+    <div class="confetti" id="confetti"></div>
+    <div class="reward-content">
+      <div class="reward-burst">
+        <div class="reward-emoji" id="rewardEmoji">🎉</div>
+      </div>
+      <div class="reward-label" id="rewardLabel">Поздравляем!</div>
+      <h2 class="reward-title" id="rewardTitle">Ты заслужила скидку</h2>
+      <div class="reward-discount" id="rewardDiscount">-25%</div>
+      <p class="reward-message" id="rewardMessage">На <b>«Полный гайд по железодефициту»</b><br>Скидка действует только сейчас!</p>
+      <div class="reward-hint" id="rewardHint" style="display:none;">
+        <div class="reward-hint-title">💡 А знаешь что?</div>
+        <div class="reward-hint-text" id="rewardHintText"></div>
+      </div>
+      <button class="reward-btn" onclick="claimReward()">Забрать скидку →</button>
+      <button class="reward-skip" onclick="skipReward()">Сначала посмотреть результаты</button>
+    </div>
+  </div>
+  
+  <!-- FINAL -->
+  <div class="screen" id="final">
+    <div class="final-emoji" id="finalEmoji">💪</div>
+    <div class="final-level" id="finalLevel">Продвинутая</div>
+    <p class="final-message" id="finalMessage">Отлично! Ты разбираешься в железе</p>
+    
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-value" id="statScore">0</div>
+        <div class="stat-label">Очки</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="statCorrect">0/40</div>
+        <div class="stat-label">Верно</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="statStreak">0</div>
+        <div class="stat-label">Макс. серия</div>
+      </div>
+    </div>
+    
+    <div class="cta-block" id="ctaBlock"></div>
+    
+    <button class="replay-btn" onclick="restart()">Играть снова</button>
+  </div>
+  
+  <!-- PAUSE MODAL -->
+  <div class="pause-overlay" id="pauseOverlay">
+    <div class="pause-modal">
+      <div class="pause-icon">⏸️</div>
+      <h2 class="pause-title">Пауза</h2>
+      <p class="pause-subtitle">Игра остановлена. Что дальше?</p>
+      <div class="pause-actions">
+        <button class="pause-action primary" onclick="resumeGame()">▶ Продолжить</button>
+        <button class="pause-action secondary" onclick="confirmRestart()">🔄 Начать заново</button>
+        <button class="pause-action danger" onclick="confirmExit()">✕ Выйти</button>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  if (tg.colorScheme === 'dark') document.body.classList.add('dark');
+  tg.onEvent?.('themeChanged', () => {
+    document.body.classList.toggle('dark', tg.colorScheme === 'dark');
+  });
+}
+
+function vibrate(type) {
+  type = type || 'light';
+  if (tg && tg.HapticFeedback) {
+    if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+    else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+    else if (type === 'warning') tg.HapticFeedback.notificationOccurred('warning');
+    else tg.HapticFeedback.impactOccurred(type);
+  } else if (navigator.vibrate) {
+    navigator.vibrate(type === 'error' ? [50, 30, 50] : 20);
+  }
+}
+
+const LINKS = {
+  postsIron: '#posts-iron',
+  magicPillsIron: '#magic-pills-iron',
+  guideIron: '#guide-iron',
+  freeMaterials: '#free-materials'
+};
+
+const ICONS = {
+  coffee: '<svg viewBox="0 0 100 100"><defs><linearGradient id="cf1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B4513"/><stop offset="1" stop-color="#3d1f0a"/></linearGradient></defs><path d="M22 38 L78 38 L72 82 Q70 88 64 88 L36 88 Q30 88 28 82 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><ellipse cx="50" cy="38" rx="28" ry="6" fill="url(#cf1)" stroke="#2b1810" stroke-width="2.5"/><path d="M78 48 Q92 50 92 60 Q92 70 78 72" fill="none" stroke="#2b1810" stroke-width="2.5" stroke-linecap="round"/><path d="M40 22 Q42 28 40 32 M50 18 Q52 26 50 32 M60 22 Q62 28 60 32" stroke="#a08070" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/></svg>',
+  tea: '<svg viewBox="0 0 100 100"><defs><linearGradient id="tea1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5c2c0c"/><stop offset="1" stop-color="#2b1505"/></linearGradient></defs><path d="M20 42 L78 42 L72 82 Q70 88 64 88 L36 88 Q30 88 28 82 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><ellipse cx="49" cy="42" rx="29" ry="5" fill="url(#tea1)" stroke="#2b1810" stroke-width="2.5"/><path d="M78 52 Q90 54 90 62 Q90 70 78 70" fill="none" stroke="#2b1810" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="42" r="2" fill="#2b1810"/></svg>',
+  greenTea: '<svg viewBox="0 0 100 100"><defs><linearGradient id="gt1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cb342"/><stop offset="1" stop-color="#33691e"/></linearGradient></defs><path d="M20 42 L78 42 L72 82 Q70 88 64 88 L36 88 Q30 88 28 82 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><ellipse cx="49" cy="42" rx="29" ry="5" fill="url(#gt1)" stroke="#2b1810" stroke-width="2.5"/><path d="M78 52 Q90 54 90 62 Q90 70 78 70" fill="none" stroke="#2b1810" stroke-width="2.5" stroke-linecap="round"/><path d="M55 38 Q60 32 65 38" fill="#7cb342" stroke="#2b1810" stroke-width="1.5"/></svg>',
+  herbalTea: '<svg viewBox="0 0 100 100"><defs><linearGradient id="ht1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd54f"/><stop offset="1" stop-color="#f57f17"/></linearGradient></defs><path d="M20 42 L78 42 L72 82 Q70 88 64 88 L36 88 Q30 88 28 82 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><ellipse cx="49" cy="42" rx="29" ry="5" fill="url(#ht1)" stroke="#2b1810" stroke-width="2.5"/><path d="M78 52 Q90 54 90 62 Q90 70 78 70" fill="none" stroke="#2b1810" stroke-width="2.5" stroke-linecap="round"/><path d="M48 36 L52 30 L48 25 L44 30 Z" fill="#aed581" stroke="#2b1810" stroke-width="1.2"/></svg>',
+  mintTea: '<svg viewBox="0 0 100 100"><defs><linearGradient id="mt1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a5d6a7"/><stop offset="1" stop-color="#388e3c"/></linearGradient></defs><path d="M20 42 L78 42 L72 82 Q70 88 64 88 L36 88 Q30 88 28 82 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><ellipse cx="49" cy="42" rx="29" ry="5" fill="url(#mt1)" stroke="#2b1810" stroke-width="2.5"/><path d="M78 52 Q90 54 90 62 Q90 70 78 70" fill="none" stroke="#2b1810" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="48" cy="35" rx="6" ry="9" fill="#66bb6a" stroke="#2b1810" stroke-width="1.5" transform="rotate(-20 48 35)"/></svg>',
+  milk: '<svg viewBox="0 0 100 100"><defs><linearGradient id="mlk1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e3f2fd"/></linearGradient></defs><path d="M30 18 L70 18 L72 28 Q72 32 76 36 L76 84 Q76 90 70 90 L30 90 Q24 90 24 84 L24 36 Q28 32 28 28 Z" fill="url(#mlk1)" stroke="#2b1810" stroke-width="2.5"/><rect x="32" y="48" width="36" height="22" rx="2" fill="#fff" stroke="#2b1810" stroke-width="2"/><text x="50" y="63" text-anchor="middle" font-family="Nunito" font-size="11" font-weight="900" fill="#2b1810">MILK</text></svg>',
+  kefir: '<svg viewBox="0 0 100 100"><defs><linearGradient id="kf1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fce4ec"/></linearGradient></defs><path d="M30 18 L70 18 L72 28 Q72 32 76 36 L76 84 Q76 90 70 90 L30 90 Q24 90 24 84 L24 36 Q28 32 28 28 Z" fill="url(#kf1)" stroke="#2b1810" stroke-width="2.5"/><rect x="32" y="48" width="36" height="22" rx="2" fill="#fff" stroke="#2b1810" stroke-width="2"/><text x="50" y="64" text-anchor="middle" font-family="Nunito" font-size="13" font-weight="900" fill="#e91e63">К</text></svg>',
+  wine: '<svg viewBox="0 0 100 100"><defs><linearGradient id="wn1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7b1c2c"/><stop offset="1" stop-color="#3e0d16"/></linearGradient></defs><path d="M30 18 L70 18 Q72 36 60 50 Q56 54 56 62 L56 78 L66 84 L66 88 L34 88 L34 84 L44 78 L44 62 Q44 54 40 50 Q28 36 30 18 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><path d="M32 22 L68 22 Q70 34 60 46 Q56 50 56 56 L44 56 Q44 50 40 46 Q30 34 32 22 Z" fill="url(#wn1)"/></svg>',
+  orange: '<svg viewBox="0 0 100 100"><defs><radialGradient id="org1" cx="40%" cy="35%"><stop offset="0" stop-color="#ffa726"/><stop offset="1" stop-color="#e65100"/></radialGradient></defs><circle cx="50" cy="55" r="32" fill="url(#org1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="50" cy="55" r="22" fill="none" stroke="#2b1810" stroke-width="1.5" opacity="0.4"/><path d="M50 33 Q53 26 56 22 L52 24 Q50 22 48 24 L44 22 Q47 26 50 33 Z" fill="#66bb6a" stroke="#2b1810" stroke-width="1.5"/></svg>',
+  lemon: '<svg viewBox="0 0 100 100"><defs><linearGradient id="lm1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff59d"/><stop offset="1" stop-color="#fbc02d"/></linearGradient></defs><ellipse cx="50" cy="55" rx="30" ry="26" fill="url(#lm1)" stroke="#2b1810" stroke-width="2.5"/><path d="M22 50 Q18 55 22 60 M78 50 Q82 55 78 60" stroke="#2b1810" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M48 32 Q52 26 56 24 L52 28 L48 32 Z" fill="#66bb6a" stroke="#2b1810" stroke-width="1.5"/></svg>',
+  berry: '<svg viewBox="0 0 100 100"><defs><radialGradient id="br1" cx="40%" cy="35%"><stop offset="0" stop-color="#9c27b0"/><stop offset="1" stop-color="#4a148c"/></radialGradient></defs><circle cx="35" cy="55" r="18" fill="url(#br1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="62" cy="50" r="20" fill="url(#br1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="50" cy="68" r="16" fill="url(#br1)" stroke="#2b1810" stroke-width="2.5"/><path d="M55 28 L60 18 L65 25 L70 20 M50 28 L48 18" stroke="#388e3c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>',
+  mango: '<svg viewBox="0 0 100 100"><defs><linearGradient id="mng1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffeb3b"/><stop offset="0.5" stop-color="#ff9800"/><stop offset="1" stop-color="#e64a19"/></linearGradient></defs><path d="M30 35 Q40 20 60 22 Q78 25 80 50 Q80 75 60 82 Q35 85 28 70 Q22 50 30 35 Z" fill="url(#mng1)" stroke="#2b1810" stroke-width="2.5"/><path d="M50 25 Q52 18 56 14" stroke="#388e3c" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="56" cy="13" rx="6" ry="4" fill="#66bb6a" stroke="#2b1810" stroke-width="1.5"/></svg>',
+  redPepper: '<svg viewBox="0 0 100 100"><defs><linearGradient id="rp1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f44336"/><stop offset="1" stop-color="#b71c1c"/></linearGradient></defs><path d="M40 30 Q30 35 28 50 Q26 70 38 78 Q50 84 60 78 Q72 70 70 50 Q68 35 58 30 Q50 35 40 30 Z" fill="url(#rp1)" stroke="#2b1810" stroke-width="2.5"/><path d="M44 28 Q42 22 38 18 Q42 22 50 22 Q58 22 62 18 Q58 22 56 28" fill="#388e3c" stroke="#2b1810" stroke-width="2"/><path d="M50 22 L50 14" stroke="#2e7d32" stroke-width="3" stroke-linecap="round"/></svg>',
+  kiwi: '<svg viewBox="0 0 100 100"><defs><radialGradient id="kw1" cx="50%" cy="50%"><stop offset="0" stop-color="#dcedc8"/><stop offset="0.7" stop-color="#9ccc65"/><stop offset="1" stop-color="#558b2f"/></radialGradient></defs><circle cx="50" cy="50" r="34" fill="#8d6e63" stroke="#2b1810" stroke-width="2.5"/><circle cx="50" cy="50" r="30" fill="url(#kw1)"/><circle cx="50" cy="50" r="6" fill="#fff" opacity="0.7"/><circle cx="50" cy="50" r="3" fill="#fbc02d"/></svg>',
+  rosehip: '<svg viewBox="0 0 100 100"><defs><radialGradient id="rh1" cx="40%" cy="35%"><stop offset="0" stop-color="#ef5350"/><stop offset="1" stop-color="#b71c1c"/></radialGradient></defs><ellipse cx="50" cy="58" rx="26" ry="30" fill="url(#rh1)" stroke="#2b1810" stroke-width="2.5"/><path d="M40 28 L60 28 L58 32 L62 36 L52 32 L48 36 L42 32 Z" fill="#388e3c" stroke="#2b1810" stroke-width="1.5"/><path d="M50 28 L50 18" stroke="#388e3c" stroke-width="2.5" stroke-linecap="round"/></svg>',
+  spinach: '<svg viewBox="0 0 100 100"><defs><linearGradient id="sp1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#66bb6a"/><stop offset="1" stop-color="#1b5e20"/></linearGradient></defs><path d="M30 50 Q22 40 28 32 Q35 28 42 34 Q40 22 50 18 Q60 22 58 34 Q65 28 72 32 Q78 40 70 50 Q78 55 75 65 Q70 75 58 72 Q55 82 50 84 Q45 82 42 72 Q30 75 25 65 Q22 55 30 50 Z" fill="url(#sp1)" stroke="#2b1810" stroke-width="2.5"/><path d="M50 30 L50 75" stroke="#1b5e20" stroke-width="1.5" fill="none" opacity="0.6"/></svg>',
+  broccoli: '<svg viewBox="0 0 100 100"><defs><linearGradient id="bc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cb342"/><stop offset="1" stop-color="#33691e"/></linearGradient></defs><circle cx="35" cy="35" r="14" fill="url(#bc1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="55" cy="28" r="13" fill="url(#bc1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="68" cy="40" r="12" fill="url(#bc1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="45" cy="48" r="13" fill="url(#bc1)" stroke="#2b1810" stroke-width="2.5"/><path d="M40 55 L42 80 Q45 85 50 85 Q55 85 58 80 L60 55" fill="#dcedc8" stroke="#2b1810" stroke-width="2.5"/></svg>',
+  parsley: '<svg viewBox="0 0 100 100"><defs><linearGradient id="prs1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#81c784"/><stop offset="1" stop-color="#2e7d32"/></linearGradient></defs><path d="M50 88 L50 50" stroke="#2e7d32" stroke-width="3" stroke-linecap="round"/><g fill="url(#prs1)" stroke="#2b1810" stroke-width="1.8"><circle cx="32" cy="35" r="9"/><circle cx="50" cy="22" r="9"/><circle cx="68" cy="35" r="9"/><circle cx="40" cy="48" r="9"/><circle cx="60" cy="48" r="9"/><circle cx="50" cy="40" r="9"/></g></svg>',
+  liver: '<svg viewBox="0 0 100 100"><defs><linearGradient id="lv1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d3a4a"/><stop offset="1" stop-color="#4a0e1a"/></linearGradient></defs><path d="M25 40 Q20 30 30 25 Q40 22 50 30 Q62 22 75 28 Q85 35 78 50 Q82 65 70 72 Q60 80 48 75 Q35 80 25 70 Q18 55 25 40 Z" fill="url(#lv1)" stroke="#2b1810" stroke-width="2.5"/><path d="M40 40 Q50 45 55 55" stroke="#2b1810" stroke-width="1.5" fill="none" opacity="0.4"/></svg>',
+  meat: '<svg viewBox="0 0 100 100"><defs><linearGradient id="mt1m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d84747"/><stop offset="1" stop-color="#7b2020"/></linearGradient></defs><path d="M25 45 Q20 32 32 28 Q45 25 55 32 Q70 25 80 35 Q88 50 78 62 Q70 75 55 72 Q40 78 28 70 Q18 58 25 45 Z" fill="url(#mt1m)" stroke="#2b1810" stroke-width="2.5"/><ellipse cx="55" cy="50" rx="14" ry="10" fill="#fce4e4" stroke="#2b1810" stroke-width="1.8"/></svg>',
+  lamb: '<svg viewBox="0 0 100 100"><defs><linearGradient id="lmb1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c54040"/><stop offset="1" stop-color="#6b1818"/></linearGradient></defs><path d="M45 25 Q35 28 30 38 L30 60 Q30 75 42 80 L48 85 Q52 88 56 85 L62 80 Q72 75 72 60 L72 38 Q68 28 58 25 Q52 22 45 25 Z" fill="url(#lmb1)" stroke="#2b1810" stroke-width="2.5"/><rect x="48" y="80" width="6" height="10" fill="#fff" stroke="#2b1810" stroke-width="2"/></svg>',
+  heart: '<svg viewBox="0 0 100 100"><defs><linearGradient id="ht2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c62828"/><stop offset="1" stop-color="#5a0e0e"/></linearGradient></defs><path d="M50 80 Q20 60 22 38 Q24 22 38 22 Q47 22 50 32 Q53 22 62 22 Q76 22 78 38 Q80 60 50 80 Z" fill="url(#ht2)" stroke="#2b1810" stroke-width="2.5"/></svg>',
+  fish: '<svg viewBox="0 0 100 100"><defs><linearGradient id="fsh1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#90caf9"/><stop offset="1" stop-color="#1565c0"/></linearGradient></defs><path d="M15 50 Q30 30 60 32 Q75 35 78 42 L92 32 L88 50 L92 68 L78 58 Q75 65 60 68 Q30 70 15 50 Z" fill="url(#fsh1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="68" cy="44" r="3" fill="#2b1810"/></svg>',
+  egg: '<svg viewBox="0 0 100 100"><defs><radialGradient id="eg1" cx="40%" cy="35%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff8e1"/></radialGradient></defs><path d="M50 12 Q30 16 25 45 Q22 72 50 88 Q78 72 75 45 Q70 16 50 12 Z" fill="url(#eg1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="50" cy="55" r="18" fill="#ffd54f" stroke="#2b1810" stroke-width="2"/></svg>',
+  bran: '<svg viewBox="0 0 100 100"><defs><linearGradient id="brn1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a1887f"/><stop offset="1" stop-color="#4e342e"/></linearGradient></defs><path d="M20 60 Q20 50 30 50 L70 50 Q80 50 80 60 L80 78 Q80 84 74 84 L26 84 Q20 84 20 78 Z" fill="#fff" stroke="#2b1810" stroke-width="2.5"/><g fill="url(#brn1)" stroke="#2b1810" stroke-width="1"><ellipse cx="32" cy="55" rx="3" ry="5"/><ellipse cx="42" cy="58" rx="3" ry="5"/><ellipse cx="52" cy="55" rx="3" ry="5"/><ellipse cx="62" cy="58" rx="3" ry="5"/><ellipse cx="72" cy="55" rx="3" ry="5"/><ellipse cx="35" cy="68" rx="3" ry="5"/><ellipse cx="48" cy="70" rx="3" ry="5"/><ellipse cx="60" cy="68" rx="3" ry="5"/></g></svg>',
+  lentils: '<svg viewBox="0 0 100 100"><defs><linearGradient id="lt1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bf6f3a"/><stop offset="1" stop-color="#5d2e0e"/></linearGradient></defs><ellipse cx="50" cy="80" rx="38" ry="6" fill="#8d6e63" stroke="#2b1810" stroke-width="2.5"/><g fill="url(#lt1)" stroke="#2b1810" stroke-width="1.2"><ellipse cx="32" cy="68" rx="6" ry="4"/><ellipse cx="44" cy="65" rx="6" ry="4"/><ellipse cx="58" cy="62" rx="6" ry="4"/><ellipse cx="68" cy="65" rx="6" ry="4"/><ellipse cx="40" cy="55" rx="6" ry="4"/><ellipse cx="55" cy="52" rx="6" ry="4"/><ellipse cx="48" cy="42" rx="6" ry="4"/></g></svg>',
+  pumpkinSeeds: '<svg viewBox="0 0 100 100"><g fill="#aed581" stroke="#2b1810" stroke-width="1.8"><ellipse cx="32" cy="40" rx="6" ry="9" transform="rotate(-25 32 40)"/><ellipse cx="50" cy="35" rx="6" ry="9" transform="rotate(10 50 35)"/><ellipse cx="68" cy="42" rx="6" ry="9" transform="rotate(30 68 42)"/><ellipse cx="40" cy="58" rx="6" ry="9" transform="rotate(-15 40 58)"/><ellipse cx="60" cy="55" rx="6" ry="9" transform="rotate(20 60 55)"/><ellipse cx="48" cy="72" rx="6" ry="9" transform="rotate(-30 48 72)"/><ellipse cx="68" cy="72" rx="6" ry="9" transform="rotate(40 68 72)"/></g></svg>',
+  sesame: '<svg viewBox="0 0 100 100"><g fill="#fff8e1" stroke="#2b1810" stroke-width="1.5"><ellipse cx="28" cy="40" rx="4" ry="6" transform="rotate(-20 28 40)"/><ellipse cx="42" cy="32" rx="4" ry="6" transform="rotate(15 42 32)"/><ellipse cx="58" cy="35" rx="4" ry="6" transform="rotate(-10 58 35)"/><ellipse cx="72" cy="40" rx="4" ry="6" transform="rotate(25 72 40)"/><ellipse cx="35" cy="50" rx="4" ry="6" transform="rotate(35 35 50)"/><ellipse cx="50" cy="48" rx="4" ry="6" transform="rotate(-15 50 48)"/><ellipse cx="65" cy="52" rx="4" ry="6" transform="rotate(20 65 52)"/><ellipse cx="30" cy="65" rx="4" ry="6"/><ellipse cx="45" cy="68" rx="4" ry="6"/><ellipse cx="60" cy="65" rx="4" ry="6"/><ellipse cx="72" cy="68" rx="4" ry="6"/></g></svg>',
+  soy: '<svg viewBox="0 0 100 100"><defs><linearGradient id="sy1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e1"/><stop offset="1" stop-color="#bcaaa4"/></linearGradient></defs><path d="M25 50 Q20 35 30 30 Q42 28 50 38 Q58 28 70 30 Q80 35 75 50 Q80 65 70 70 Q58 72 50 62 Q42 72 30 70 Q20 65 25 50 Z" fill="url(#sy1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="40" cy="48" r="6" fill="#fff8e1" stroke="#2b1810" stroke-width="1.8"/><circle cx="60" cy="48" r="6" fill="#fff8e1" stroke="#2b1810" stroke-width="1.8"/></svg>',
+  chocolate: '<svg viewBox="0 0 100 100"><defs><linearGradient id="ch1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d4037"/><stop offset="1" stop-color="#1b0e08"/></linearGradient></defs><rect x="22" y="28" width="56" height="48" rx="4" fill="url(#ch1)" stroke="#2b1810" stroke-width="2.5"/><line x1="40" y1="28" x2="40" y2="76" stroke="#2b1810" stroke-width="1.5" opacity="0.4"/><line x1="58" y1="28" x2="58" y2="76" stroke="#2b1810" stroke-width="1.5" opacity="0.4"/><line x1="22" y1="44" x2="78" y2="44" stroke="#2b1810" stroke-width="1.5" opacity="0.4"/><line x1="22" y1="60" x2="78" y2="60" stroke="#2b1810" stroke-width="1.5" opacity="0.4"/></svg>',
+  cheese: '<svg viewBox="0 0 100 100"><defs><linearGradient id="cs1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffeb3b"/><stop offset="1" stop-color="#f9a825"/></linearGradient></defs><path d="M22 60 L78 32 L82 50 L78 78 L22 78 Z" fill="url(#cs1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="40" cy="68" r="3" fill="#fbc02d" stroke="#2b1810" stroke-width="1"/><circle cx="55" cy="62" r="2.5" fill="#fbc02d" stroke="#2b1810" stroke-width="1"/></svg>',
+  pillVitC: '<svg viewBox="0 0 100 100"><defs><linearGradient id="pvc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffa726"/><stop offset="1" stop-color="#e65100"/></linearGradient></defs><rect x="20" y="40" width="60" height="20" rx="10" fill="url(#pvc1)" stroke="#2b1810" stroke-width="2.5"/><line x1="50" y1="40" x2="50" y2="60" stroke="#2b1810" stroke-width="2"/><text x="35" y="55" text-anchor="middle" font-family="Nunito" font-size="11" font-weight="900" fill="#fff">C</text><text x="65" y="55" text-anchor="middle" font-family="Nunito" font-size="11" font-weight="900" fill="#fff">C</text></svg>',
+  pillCalcium: '<svg viewBox="0 0 100 100"><defs><linearGradient id="pca1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#bdbdbd"/></linearGradient><linearGradient id="pca2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#90caf9"/><stop offset="1" stop-color="#1565c0"/></linearGradient></defs><rect x="20" y="32" width="60" height="20" rx="10" fill="url(#pca1)" stroke="#2b1810" stroke-width="2.5"/><text x="50" y="47" text-anchor="middle" font-family="Nunito" font-size="11" font-weight="900" fill="#2b1810">Ca + Fe</text><rect x="20" y="58" width="60" height="20" rx="10" fill="url(#pca2)" stroke="#2b1810" stroke-width="2.5"/></svg>',
+  pillZinc: '<svg viewBox="0 0 100 100"><defs><linearGradient id="pz1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#90a4ae"/><stop offset="1" stop-color="#37474f"/></linearGradient><linearGradient id="pz2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef5350"/><stop offset="1" stop-color="#b71c1c"/></linearGradient></defs><rect x="20" y="32" width="60" height="20" rx="10" fill="url(#pz1)" stroke="#2b1810" stroke-width="2.5"/><text x="50" y="47" text-anchor="middle" font-family="Nunito" font-size="11" font-weight="900" fill="#fff">Zn + Fe</text><rect x="20" y="58" width="60" height="20" rx="10" fill="url(#pz2)" stroke="#2b1810" stroke-width="2.5"/></svg>',
+  antacid: '<svg viewBox="0 0 100 100"><defs><linearGradient id="ant1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e1bee7"/><stop offset="1" stop-color="#6a1b9a"/></linearGradient></defs><circle cx="35" cy="55" r="18" fill="url(#ant1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="62" cy="48" r="18" fill="url(#ant1)" stroke="#2b1810" stroke-width="2.5"/><line x1="35" y1="37" x2="35" y2="73" stroke="#2b1810" stroke-width="1.5" opacity="0.5"/><line x1="62" y1="30" x2="62" y2="66" stroke="#2b1810" stroke-width="1.5" opacity="0.5"/></svg>',
+  ppi: '<svg viewBox="0 0 100 100"><defs><linearGradient id="ppi1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffeb3b"/><stop offset="1" stop-color="#f57f17"/></linearGradient><linearGradient id="ppi2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef5350"/><stop offset="1" stop-color="#b71c1c"/></linearGradient></defs><path d="M30 35 L70 35 Q72 35 72 38 L72 50 Q72 53 70 53 L30 53 Q28 53 28 50 L28 38 Q28 35 30 35 Z" fill="url(#ppi1)" stroke="#2b1810" stroke-width="2.5"/><path d="M30 53 L70 53 Q72 53 72 56 L72 68 Q72 70 70 70 L30 70 Q28 70 28 68 L28 56 Q28 53 30 53 Z" fill="url(#ppi2)" stroke="#2b1810" stroke-width="2.5"/></svg>',
+  wholegrain: '<svg viewBox="0 0 100 100"><defs><linearGradient id="wg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a1887f"/><stop offset="1" stop-color="#4e342e"/></linearGradient></defs><path d="M22 38 Q22 30 30 28 Q40 24 50 28 Q60 24 70 28 Q78 30 78 38 L78 70 Q78 78 70 78 L30 78 Q22 78 22 70 Z" fill="url(#wg1)" stroke="#2b1810" stroke-width="2.5"/><circle cx="32" cy="48" r="2" fill="#fff8e1" stroke="#2b1810" stroke-width="1"/><circle cx="42" cy="55" r="2" fill="#fff8e1" stroke="#2b1810" stroke-width="1"/><circle cx="52" cy="48" r="2" fill="#fff8e1" stroke="#2b1810" stroke-width="1"/><circle cx="62" cy="55" r="2" fill="#fff8e1" stroke="#2b1810" stroke-width="1"/><circle cx="72" cy="48" r="2" fill="#fff8e1" stroke="#2b1810" stroke-width="1"/></svg>',
+  sourdough: '<svg viewBox="0 0 100 100"><defs><linearGradient id="sd1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4a574"/><stop offset="1" stop-color="#6d4423"/></linearGradient></defs><ellipse cx="50" cy="55" rx="32" ry="26" fill="url(#sd1)" stroke="#2b1810" stroke-width="2.5"/><path d="M28 50 Q40 45 52 50 Q64 45 72 50" stroke="#2b1810" stroke-width="2" fill="none" opacity="0.5"/><path d="M30 60 Q42 55 54 60 Q66 55 70 60" stroke="#2b1810" stroke-width="2" fill="none" opacity="0.5"/></svg>',
+  vitCsupp: '<svg viewBox="0 0 100 100"><defs><linearGradient id="vc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd54f"/><stop offset="1" stop-color="#f57c00"/></linearGradient></defs><circle cx="50" cy="50" r="32" fill="url(#vc1)" stroke="#2b1810" stroke-width="2.5"/><text x="50" y="58" text-anchor="middle" font-family="Nunito" font-size="28" font-weight="900" fill="#fff">C</text><text x="50" y="68" text-anchor="middle" font-family="Nunito" font-size="9" font-weight="800" fill="#fff" opacity="0.9">VIT</text></svg>',
+  hemeIron: '<svg viewBox="0 0 100 100"><defs><linearGradient id="hi1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c62828"/><stop offset="1" stop-color="#5a0e0e"/></linearGradient></defs><circle cx="50" cy="50" r="32" fill="url(#hi1)" stroke="#2b1810" stroke-width="2.5"/><text x="50" y="58" text-anchor="middle" font-family="Nunito" font-size="22" font-weight="900" fill="#fff">Fe</text></svg>'
+};
+
+const CATS = {
+  drink: 'Напиток', fruit: 'Фрукт', vegetable: 'Овощ', meat: 'Мясо',
+  fish: 'Рыба', egg: 'Яйцо', grain: 'Зерновые', legume: 'Бобовые',
+  seed: 'Семена', dairy: 'Молочное', supplement: 'Добавка',
+  sweet: 'Сладкое', herb: 'Зелень'
+};
+
+const CARDS = [
+  { icon: 'vitCsupp', cat: 'supplement', name: 'Витамин C с едой', answer: 'friend', why: 'Аскорбиновая кислота увеличивает усвоение железа в 3 раза.' },
+  { icon: 'liver', cat: 'meat', name: 'Говяжья печень', answer: 'friend', why: 'Гемовое железо усваивается на 20-30%. Один из лучших природных источников.' },
+  { icon: 'berry', cat: 'fruit', name: 'Витамин C из ягод', answer: 'friend', why: 'Аскорбиновая кислота образует хелат с железом - оно лучше усваивается.' },
+  { icon: 'lemon', cat: 'fruit', name: 'Лимонный сок к блюду', answer: 'friend', why: 'Кислая среда помогает усвоению железа в кишечнике.' },
+  { icon: 'broccoli', cat: 'vegetable', name: 'Брокколи', answer: 'friend', why: 'Содержит и железо, и витамин C одновременно - идеальная комбинация.' },
+  { icon: 'egg', cat: 'egg', name: 'Яйцо целиком', answer: 'friend', why: 'Желток содержит железо + витамин A. Ешь целиком, не только белок!' },
+  { icon: 'lentils', cat: 'legume', name: 'Чечевица с лимоном', answer: 'friend', why: 'Витамин C нейтрализует фитаты бобовых.' },
+  { icon: 'pumpkinSeeds', cat: 'seed', name: 'Тыквенные семечки', answer: 'friend', why: 'Хороший растительный источник железа + цинк.' },
+  { icon: 'herbalTea', cat: 'drink', name: 'Травяной чай без танинов', answer: 'friend', why: 'Не содержит полифенолов - не мешает усвоению железа.' },
+  { icon: 'heart', cat: 'meat', name: 'Говяжье сердце', answer: 'friend', why: 'Гемовое железо + коэнзим Q10.' },
+  { icon: 'fish', cat: 'fish', name: 'Сардины', answer: 'friend', why: 'Гемовое железо + витамин B12 в одной банке.' },
+  { icon: 'mango', cat: 'fruit', name: 'Манго', answer: 'friend', why: 'Содержит витамин C и немного железа.' },
+  { icon: 'redPepper', cat: 'vegetable', name: 'Красный болгарский перец', answer: 'friend', why: 'Рекордсмен по витамину C среди овощей.' },
+  { icon: 'parsley', cat: 'herb', name: 'Петрушка', answer: 'friend', why: 'Железо и витамин C в одном продукте.' },
+  { icon: 'lamb', cat: 'meat', name: 'Баранина', answer: 'friend', why: 'Гемовое железо с высокой биодоступностью.' },
+  { icon: 'rosehip', cat: 'fruit', name: 'Шиповник', answer: 'friend', why: 'Один из лидеров по содержанию витамина C.' },
+  { icon: 'kiwi', cat: 'fruit', name: 'Киви', answer: 'friend', why: 'Высокое содержание витамина C.' },
+  { icon: 'sesame', cat: 'seed', name: 'Кунжут', answer: 'friend', why: 'Хороший источник негемового железа.' },
+  { icon: 'pillVitC', cat: 'supplement', name: 'Витамин C за 30 мин до еды', answer: 'friend', why: 'Максимальный эффект усиления усвоения железа.' },
+  { icon: 'hemeIron', cat: 'meat', name: 'Гемовое мясо любого вида', answer: 'friend', why: 'Лучший тип железа - усваивается независимо от других факторов.' },
+  { icon: 'coffee', cat: 'drink', name: 'Кофе сразу после еды', answer: 'enemy', why: 'Танины блокируют усвоение железа на 39%. Пей кофе за час до или через 2 часа после еды.' },
+  { icon: 'milk', cat: 'dairy', name: 'Молоко с гречкой', answer: 'enemy', why: 'Кальций напрямую конкурирует с железом за всасывание.' },
+  { icon: 'tea', cat: 'drink', name: 'Чёрный чай', answer: 'enemy', why: 'Танины чая связывают железо, как и кофе - сильные ингибиторы.' },
+  { icon: 'pillCalcium', cat: 'supplement', name: 'Кальций и железо вместе', answer: 'enemy', why: 'Добавки нельзя принимать одновременно - интервал минимум 2 часа.' },
+  { icon: 'wholegrain', cat: 'grain', name: 'Цельнозерновой хлеб (фитаты)', answer: 'enemy', why: 'Фитаты связывают железо в нерастворимые комплексы.' },
+  { icon: 'chocolate', cat: 'sweet', name: 'Тёмный шоколад рядом с едой', answer: 'enemy', why: 'Полифенолы какао блокируют всасывание железа.' },
+  { icon: 'wine', cat: 'drink', name: 'Красное вино', answer: 'enemy', why: 'Полифенолы и танины - двойной удар по усвоению железа.' },
+  { icon: 'antacid', cat: 'supplement', name: 'Антациды от изжоги', answer: 'enemy', why: 'Снижают кислотность желудка - железо не растворяется.' },
+  { icon: 'soy', cat: 'legume', name: 'Соевый белок', answer: 'enemy', why: 'Изофлавоны снижают усвоение железа.' },
+  { icon: 'greenTea', cat: 'drink', name: 'Зелёный чай', answer: 'enemy', why: 'Полифенолы работают так же, как в чёрном чае.' },
+  { icon: 'cheese', cat: 'dairy', name: 'Сыр рядом с мясом', answer: 'enemy', why: 'Кальций из сыра блокирует гемовое железо.' },
+  { icon: 'ppi', cat: 'supplement', name: 'Омепразол и другие ИПП', answer: 'enemy', why: 'Подавляют кислоту желудка - железо не усваивается.' },
+  { icon: 'bran', cat: 'grain', name: 'Отруби отдельно', answer: 'enemy', why: 'Концентрированные фитаты - мощный ингибитор усвоения железа.' },
+  { icon: 'kefir', cat: 'dairy', name: 'Кефир с гречкой', answer: 'enemy', why: 'Кальций из кефира мешает усвоению железа из злаков.' },
+  { icon: 'coffee', cat: 'drink', name: 'Кофе за час до еды', answer: 'enemy', why: 'Полифенолы остаются активными в желудке.' },
+  { icon: 'mintTea', cat: 'drink', name: 'Мятный чай', answer: 'enemy', why: 'Содержит полифенолы, угнетающие усвоение железа.' },
+  { icon: 'pillZinc', cat: 'supplement', name: 'Цинк и железо вместе', answer: 'enemy', why: 'Конкурируют за один транспортный белок.' },
+  { icon: 'spinach', cat: 'vegetable', name: 'Шпинат', answer: 'neutral', why: 'Содержит железо, но оксалаты сильно снижают его усвоение. Добавь витамин C - и заработает!' },
+  { icon: 'sourdough', cat: 'grain', name: 'Хлеб на закваске', answer: 'neutral', why: 'Закваска частично разрушает фитаты - лучше обычного хлеба, но не идеально.' },
+  { icon: 'soy', cat: 'dairy', name: 'Соевое молоко', answer: 'neutral', why: 'Само содержит железо, но изофлавоны мешают его усвоению.' }
+];
+
+let state = {
+  cards: [], currentIndex: 0, score: 0, streak: 0, maxStreak: 0,
+  lives: 3, correct: 0, level: 1,
+  l1Score: 0, l1Correct: 0, l1MaxStreak: 0,
+  cardStartTime: 0, timerTimeout: null, feedbackTimeout: null,
+  answered: false, feedbackShown: false,
+  paused: false, pausedTimeLeft: 0,
+  finalEmoji: '', finalLevel: '', finalMessage: '', finalTier: '', finalDiscount: 0
+};
+
+const TOTAL = 40;
+const LEVEL2_AT = 20;
+
+function timerDuration() { return state.level === 2 ? 3000 : 5000; }
+function pointsMultiplier() { return state.level === 2 ? 2 : 1; }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function smartShuffle(cards) {
+  const neutrals = shuffle(cards.filter(c => c.answer === 'neutral'));
+  const others = shuffle(cards.filter(c => c.answer !== 'neutral'));
+  const half = Math.floor(others.length / 2);
+  const firstHalf = others.slice(0, half);
+  const secondHalf = others.slice(half);
+  if (neutrals.length >= 1) firstHalf.splice(Math.floor(Math.random() * firstHalf.length), 0, neutrals[0]);
+  if (neutrals.length >= 2) secondHalf.splice(Math.floor(Math.random() * secondHalf.length), 0, neutrals[1]);
+  if (neutrals.length >= 3) {
+    const target = Math.random() > 0.5 ? firstHalf : secondHalf;
+    target.splice(Math.floor(Math.random() * target.length), 0, neutrals[2]);
+  }
+  return firstHalf.concat(secondHalf).slice(0, TOTAL);
+}
+
+function startGame() {
+  state = {
+    cards: smartShuffle(CARDS),
+    currentIndex: 0, score: 0, streak: 0, maxStreak: 0,
+    lives: 3, correct: 0, level: 1,
+    l1Score: 0, l1Correct: 0, l1MaxStreak: 0,
+    cardStartTime: 0, timerTimeout: null, feedbackTimeout: null,
+    answered: false, feedbackShown: false,
+    paused: false, pausedTimeLeft: 0,
+    finalEmoji: '', finalLevel: '', finalMessage: '', finalTier: '', finalDiscount: 0
+  };
+  document.getElementById('game').classList.remove('level-2');
+  document.getElementById('levelBadge').style.display = 'none';
+  document.getElementById('pauseOverlay').classList.remove('show');
+  updateHUD();
+  showScreen('game');
+  showCard();
+}
+
+function pauseGame() {
+  if (state.answered || state.feedbackShown || state.paused) return;
+  state.paused = true;
+  const fill = document.getElementById('timerFill');
+  const totalDuration = timerDuration();
+  const elapsed = Date.now() - state.cardStartTime;
+  state.pausedTimeLeft = Math.max(0, totalDuration - elapsed);
+  clearTimeout(state.timerTimeout);
+  const computedWidth = getComputedStyle(fill).width;
+  fill.style.transition = 'none';
+  fill.style.width = computedWidth;
+  vibrate('light');
+  document.getElementById('pauseOverlay').classList.add('show');
+}
+
+function resumeGame() {
+  if (!state.paused) return;
+  state.paused = false;
+  document.getElementById('pauseOverlay').classList.remove('show');
+  const fill = document.getElementById('timerFill');
+  const totalDuration = timerDuration();
+  const remaining = state.pausedTimeLeft;
+  if (remaining <= 0) { timeOut(); return; }
+  state.cardStartTime = Date.now() - (totalDuration - remaining);
+  fill.offsetHeight;
+  fill.style.transition = 'width ' + remaining + 'ms linear';
+  fill.style.width = '0%';
+  state.timerTimeout = setTimeout(function() {
+    if (!state.answered && !state.paused) timeOut();
+  }, remaining);
+}
+
+function confirmRestart() {
+  if (confirm('Начать игру заново? Текущий прогресс будет потерян.')) {
+    document.getElementById('pauseOverlay').classList.remove('show');
+    state.paused = false;
+    startGame();
+  }
+}
+
+function confirmExit() {
+  if (confirm('Выйти из игры? Текущий прогресс будет потерян.')) {
+    stopTimer();
+    clearTimeout(state.feedbackTimeout);
+    state.paused = false;
+    document.getElementById('pauseOverlay').classList.remove('show');
+    document.getElementById('game').classList.remove('level-2');
+    showScreen('splash');
+  }
+}
+
+function showCard() {
+  const card = state.cards[state.currentIndex];
+  if (!card) { endGame(); return; }
+  if (state.level === 1 && state.currentIndex === LEVEL2_AT) {
+    showLevelUp();
+    return;
+  }
+  state.answered = false;
+  state.feedbackShown = false;
+  document.getElementById('cardIllustration').innerHTML = ICONS[card.icon] || ICONS.hemeIron;
+  document.getElementById('cardName').textContent = card.name;
+  document.getElementById('cardCategory').textContent = CATS[card.cat] || '';
+  document.getElementById('cardNum').textContent = state.currentIndex + 1;
+  document.getElementById('progressFill').style.width = ((state.currentIndex + 1) / TOTAL * 100) + '%';
+  const cardEl = document.getElementById('card');
+  cardEl.className = 'card';
+  cardEl.style.transform = '';
+  cardEl.style.opacity = '1';
+  document.querySelectorAll('.swipe-hint').forEach(h => h.style.opacity = '0');
+  document.getElementById('feedback').classList.remove('show');
+  setupActions(card.answer === 'neutral');
+  const streakBadge = document.getElementById('streakBadge');
+  if (state.streak >= 3) {
+    streakBadge.textContent = '🔥 Серия x' + state.streak + '!';
+    streakBadge.style.display = 'block';
+  } else {
+    streakBadge.style.display = 'none';
+  }
+  startTimer();
+  state.cardStartTime = Date.now();
+}
+
+function setupActions(isNeutral) {
+  const actions = document.getElementById('actions');
+  if (isNeutral) {
+    actions.className = 'actions three-options';
+    actions.innerHTML = '<button class="action-btn enemy" onclick="answer(\'enemy\')"><span class="icon">👎</span><span class="label">Враг</span></button><button class="action-btn neutral" onclick="answer(\'neutral\')"><span class="icon">🤔</span><span class="label">Зависит</span></button><button class="action-btn friend" onclick="answer(\'friend\')"><span class="icon">👍</span><span class="label">Друг</span></button>';
+  } else {
+    actions.className = 'actions';
+    actions.innerHTML = '<button class="action-btn enemy" onclick="answer(\'enemy\')"><span class="icon">👎</span><span class="label">Враг</span></button><button class="action-btn friend" onclick="answer(\'friend\')"><span class="icon">👍</span><span class="label">Друг</span></button>';
+  }
+}
+
+function startTimer() {
+  const fill = document.getElementById('timerFill');
+  const dur = timerDuration();
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  fill.offsetHeight;
+  fill.style.transition = 'width ' + dur + 'ms linear';
+  fill.style.width = '0%';
+  clearTimeout(state.timerTimeout);
+  state.timerTimeout = setTimeout(function() {
+    if (!state.answered) timeOut();
+  }, dur);
+}
+
+function stopTimer() {
+  clearTimeout(state.timerTimeout);
+  const fill = document.getElementById('timerFill');
+  const computedWidth = getComputedStyle(fill).width;
+  fill.style.transition = 'none';
+  fill.style.width = computedWidth;
+}
+
+function timeOut() {
+  if (state.answered) return;
+  state.answered = true;
+  stopTimer();
+  vibrate('error');
+  const card = state.cards[state.currentIndex];
+  state.streak = 0;
+  state.lives--;
+  updateHUD();
+  showFeedback(false, card, 0, 'Время вышло!');
+}
+
+function answer(choice) {
+  if (state.answered) return;
+  state.answered = true;
+  stopTimer();
+  const card = state.cards[state.currentIndex];
+  const timeSpent = (Date.now() - state.cardStartTime) / 1000;
+  const isCorrect = choice === card.answer;
+  let points = 0;
+  if (isCorrect) {
+    const fastThreshold = state.level === 2 ? 1.2 : 2;
+    points = timeSpent < fastThreshold ? 150 : 100;
+    state.streak++;
+    state.maxStreak = Math.max(state.maxStreak, state.streak);
+    if (state.streak >= 3) points *= 2;
+    points *= pointsMultiplier();
+    state.score += points;
+    state.correct++;
+    vibrate('success');
+  } else {
+    state.streak = 0;
+    state.lives--;
+    vibrate('error');
+  }
+  updateHUD();
+  const cardEl = document.getElementById('card');
+  const direction = choice === 'friend' ? 'right' : choice === 'enemy' ? 'left' : 'up';
+  cardEl.classList.add('fly-' + direction);
+  setTimeout(function() { showFeedback(isCorrect, card, points); }, 300);
+}
+
+function showFeedback(isCorrect, card, points, customTitle) {
+  state.feedbackShown = true;
+  const fb = document.getElementById('feedback');
+  const isNeutralCard = card.answer === 'neutral';
+  const flash = document.getElementById('feedbackFlash');
+  flash.className = 'feedback-flash';
+  flash.offsetHeight;
+  flash.className = 'feedback-flash ' + (isCorrect ? 'correct' : 'wrong');
+  let icon = isCorrect ? '✅' : '❌';
+  if (isNeutralCard && isCorrect) icon = '⚠️';
+  document.getElementById('feedbackIcon').textContent = icon;
+  const titleEl = document.getElementById('feedbackTitle');
+  let titleClass = 'feedback-title ';
+  if (isNeutralCard && isCorrect) {
+    titleEl.textContent = customTitle || 'Зависит!';
+    titleClass += 'neutral-title';
+  } else {
+    titleEl.textContent = customTitle || (isCorrect ? 'Правильно!' : 'Неправильно');
+    titleClass += isCorrect ? 'correct' : 'wrong';
+  }
+  titleEl.className = titleClass;
+  document.getElementById('feedbackExplanation').textContent = card.why;
+  const pointsEl = document.getElementById('feedbackPoints');
+  if (points > 0) {
+    pointsEl.style.display = 'block';
+    let txt = '+' + points + ' очков';
+    if (state.streak >= 3) txt += ' 🔥x' + state.streak;
+    if (state.level === 2) txt += ' ⚡x2';
+    pointsEl.textContent = txt;
+  } else {
+    pointsEl.style.display = 'none';
+  }
+  fb.classList.add('show');
+  const duration = isNeutralCard ? 4000 : (isCorrect ? 2500 : 3500);
+  clearTimeout(state.feedbackTimeout);
+  state.feedbackTimeout = setTimeout(function() {
+    if (state.feedbackShown) nextCard();
+  }, duration);
+}
+
+function skipFeedback() {
+  if (!state.feedbackShown) return;
+  clearTimeout(state.feedbackTimeout);
+  state.feedbackShown = false;
+  nextCard();
+}
+
+function nextCard() {
+  if (state.lives <= 0) { endGame(); return; }
+  state.currentIndex++;
+  if (state.currentIndex >= state.cards.length) { endGame(); return; }
+  showCard();
+}
+
+function updateHUD() {
+  document.getElementById('score').textContent = state.score;
+  let livesHtml = '❤️'.repeat(Math.max(0, state.lives));
+  if (state.level === 1 && state.lives < 3) livesHtml += '🖤'.repeat(3 - state.lives);
+  document.getElementById('lives').innerHTML = livesHtml;
+  const streakText = document.getElementById('streakText');
+  streakText.textContent = state.streak >= 2 ? '🔥 x' + state.streak : '';
+}
+
+function showLevelUp() {
+  state.l1Score = state.score;
+  state.l1Correct = state.correct;
+  state.l1MaxStreak = state.maxStreak;
+  document.getElementById('lvlScore').textContent = state.l1Score;
+  document.getElementById('lvlCorrect').textContent = state.l1Correct + '/20';
+  document.getElementById('lvlStreak').textContent = state.l1MaxStreak;
+  vibrate('success');
+  setTimeout(function() { vibrate('warning'); }, 200);
+  showScreen('levelup');
+}
+
+function continueToLevel2() {
+  state.level = 2;
+  state.lives += 3;
+  state.streak = 0;
+  document.getElementById('game').classList.add('level-2');
+  document.getElementById('levelBadge').style.display = 'block';
+  updateHUD();
+  showScreen('game');
+  showCard();
+}
+
+function endGame() {
+  stopTimer();
+  clearTimeout(state.feedbackTimeout);
+  const total = TOTAL;
+  const percent = (state.correct / total) * 100;
+  let emoji, level, message, tier, discount = 0;
+  if (percent <= 40) {
+    emoji = '🫥'; level = 'Новичок';
+    message = 'Железо - загадка для тебя. Пора разобраться!';
+    tier = 'beginner';
+  } else if (percent <= 60) {
+    emoji = '🌱'; level = 'Любознательная';
+    message = 'Ты знаешь основы, но железо ещё прячет от тебя секреты';
+    tier = 'middle';
+  } else if (percent < 75) {
+    emoji = '💪'; level = 'Продвинутая';
+    message = 'Отлично! Ты хорошо разбираешься в железе';
+    tier = 'middle';
+  } else if (percent < 100) {
+    emoji = '💪'; level = 'Продвинутая';
+    message = 'Отлично! Ты хорошо разбираешься в железе';
+    tier = 'expert';
+    discount = 25;
+  } else {
+    emoji = '🩸'; level = 'Железный эксперт';
+    message = 'Ты на уровне нутрициолога!';
+    tier = 'expert';
+    discount = 50;
+  }
+  state.finalEmoji = emoji;
+  state.finalLevel = level;
+  state.finalMessage = message;
+  state.finalTier = tier;
+  state.finalDiscount = discount;
+  if (discount > 0) showReward(discount);
+  else showFinal();
+}
+
+function showReward(discount) {
+  document.getElementById('rewardDiscount').textContent = '-' + discount + '%';
+  const hint = document.getElementById('rewardHint');
+  if (discount === 50) {
+    document.getElementById('rewardEmoji').textContent = '🏆';
+    document.getElementById('rewardLabel').textContent = 'Идеальный результат!';
+    document.getElementById('rewardTitle').textContent = '40 из 40!';
+    document.getElementById('rewardMessage').innerHTML = 'Максимальная скидка <b>50%</b> на <b>«Полный гайд по железодефициту»</b><br>Только для экспертов!';
+    hint.style.display = 'none';
+  } else {
+    document.getElementById('rewardEmoji').textContent = '🎉';
+    document.getElementById('rewardLabel').textContent = 'Поздравляем!';
+    document.getElementById('rewardTitle').textContent = 'Скидка твоя!';
+    const remaining = TOTAL - state.correct;
+    let answersWord;
+    if (remaining === 1) answersWord = 'правильный ответ';
+    else if (remaining < 5) answersWord = 'правильных ответа';
+    else answersWord = 'правильных ответов';
+    document.getElementById('rewardMessage').innerHTML = 'На <b>«Полный гайд по железодефициту»</b><br>Действует только сейчас!';
+    document.getElementById('rewardHintText').innerHTML = 
+      'Тебе не хватило всего <b>' + remaining + ' ' + answersWord + '</b> до идеала.<br><br>' +
+      'Пройди все <b>40 из 40 правильно</b> - и получи <b>скидку 50%</b> вместо 25%!' +
+      '<div class="reward-hint-cta">🎯 Цель: 40/40 = -50%</div>';
+    hint.style.display = 'block';
+  }
+  spawnConfetti();
+  vibrate('success');
+  setTimeout(function() { vibrate('warning'); }, 300);
+  showScreen('reward');
+}
+
+function spawnConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#e63946', '#ffd60a', '#f77f00', '#06d6a0', '#9b5de5', '#c1121f'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('span');
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+    piece.style.animationDelay = Math.random() * 1 + 's';
+    piece.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+    container.appendChild(piece);
+  }
+}
+
+function claimReward() {
+  openLink('guideIron');
+  setTimeout(function() { showFinal(); }, 400);
+}
+
+function skipReward() { showFinal(); }
+
+function showFinal() {
+  document.getElementById('finalEmoji').textContent = state.finalEmoji;
+  document.getElementById('finalLevel').textContent = state.finalLevel;
+  document.getElementById('finalMessage').textContent = state.finalMessage;
+  document.getElementById('statScore').textContent = state.score;
+  document.getElementById('statCorrect').textContent = state.correct + '/' + TOTAL;
+  document.getElementById('statStreak').textContent = state.maxStreak;
+  renderCTA(state.finalTier, state.finalDiscount);
+  showScreen('final');
+}
+
+function renderCTA(tier, discount) {
+  const block = document.getElementById('ctaBlock');
+  const discountTag = discount > 0 ? '<span class="discount-tag">-' + discount + '%</span>' : '';
+  const guideBtn = function(style) {
+    return '<button class="' + style + '" onclick="openLink(\'guideIron\')">' +
+      '<span style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">🔥 Полный гайд по железодефициту' + discountTag + '</span>' +
+      '<span class="arrow">→</span></button>';
+  };
+  let html = '';
+  if (tier === 'beginner') {
+    html = '<button class="cta-primary" onclick="openLink(\'postsIron\')"><span>📚 Подборка постов по железу</span><span class="arrow">→</span></button>' +
+      '<button class="cta-secondary" onclick="openLink(\'magicPillsIron\')"><span>💊 Волшебные таблетки - Железо</span><span class="arrow">→</span></button>' +
+      '<button class="cta-secondary" onclick="openLink(\'freeMaterials\')"><span>📋 Бесплатные материалы</span><span class="arrow">→</span></button>';
+  } else if (tier === 'middle') {
+    html = '<button class="cta-primary" onclick="openLink(\'magicPillsIron\')"><span>💊 Волшебные таблетки - Железо</span><span class="arrow">→</span></button>' +
+      guideBtn('cta-secondary') +
+      '<button class="cta-secondary" onclick="openLink(\'postsIron\')"><span>📚 Подборка постов</span><span class="arrow">→</span></button>' +
+      '<button class="cta-secondary" onclick="openLink(\'freeMaterials\')"><span>📋 Бесплатные материалы</span><span class="arrow">→</span></button>';
+  } else {
+    html = guideBtn('cta-primary') +
+      '<button class="cta-secondary" onclick="openLink(\'magicPillsIron\')"><span>💊 Волшебные таблетки - Железо</span><span class="arrow">→</span></button>' +
+      '<button class="cta-secondary" onclick="openLink(\'freeMaterials\')"><span>📋 Бесплатные материалы</span><span class="arrow">→</span></button>';
+  }
+  block.innerHTML = html;
+}
+
+function openLink(key) {
+  const url = LINKS[key];
+  if (!url || url.charAt(0) === '#') {
+    console.log('Placeholder link:', key, url);
+    return;
+  }
+  if (tg && tg.openTelegramLink && url.indexOf('t.me') !== -1) tg.openTelegramLink(url);
+  else if (tg && tg.openLink) tg.openLink(url);
+  else window.open(url, '_blank');
+}
+
+function restart() { startGame(); }
+
+const cardEl = document.getElementById('card');
+let dragStart = null;
+let currentCardOffset = 0;
+
+function getPoint(e) {
+  if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.changedTouches && e.changedTouches[0]) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+function onDragStart(e) {
+  if (state.answered || state.paused) return;
+  dragStart = getPoint(e);
+  cardEl.classList.add('dragging');
+}
+
+function onDragMove(e) {
+  if (!dragStart || state.answered || state.paused) return;
+  const p = getPoint(e);
+  const dx = p.x - dragStart.x;
+  const dy = p.y - dragStart.y;
+  currentCardOffset = dx;
+  const rotation = dx * 0.1;
+  cardEl.style.transform = 'translate(' + dx + 'px, ' + (dy * 0.3) + 'px) rotate(' + rotation + 'deg)';
+  const leftHint = document.querySelector('.swipe-hint.left');
+  const rightHint = document.querySelector('.swipe-hint.right');
+  if (dx > 40) {
+    rightHint.style.opacity = Math.min(1, (dx - 40) / 60);
+    leftHint.style.opacity = 0;
+  } else if (dx < -40) {
+    leftHint.style.opacity = Math.min(1, (-dx - 40) / 60);
+    rightHint.style.opacity = 0;
+  } else {
+    leftHint.style.opacity = 0;
+    rightHint.style.opacity = 0;
+  }
+  if (e.cancelable) e.preventDefault();
+}
+
+function onDragEnd() {
+  if (!dragStart || state.answered) { dragStart = null; return; }
+  cardEl.classList.remove('dragging');
+  const threshold = 100;
+  if (currentCardOffset > threshold) answer('friend');
+  else if (currentCardOffset < -threshold) answer('enemy');
+  else {
+    cardEl.style.transform = '';
+    document.querySelectorAll('.swipe-hint').forEach(h => h.style.opacity = '0');
+  }
+  dragStart = null;
+  currentCardOffset = 0;
+}
+
+cardEl.addEventListener('touchstart', onDragStart, { passive: true });
+cardEl.addEventListener('touchmove', onDragMove, { passive: false });
+cardEl.addEventListener('touchend', onDragEnd);
+cardEl.addEventListener('touchcancel', onDragEnd);
+cardEl.addEventListener('mousedown', onDragStart);
+document.addEventListener('mousemove', onDragMove);
+document.addEventListener('mouseup', onDragEnd);
+</script>
+</body>
+</html>
