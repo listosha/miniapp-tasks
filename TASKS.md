@@ -7,89 +7,87 @@
 
 ---
 
-## ⏳ Другие задачи
+## ⏳ Активные задачи
 
-### T-QUIZ-PROMPTS: Квиз-промпты в 5 точках
+### T-QUIZ-PROMPTS: Квиз-промпты в 5 точках приложения
 **Приоритет:** 🟡 | **Статус:** На паузе
+**План:**
+1. Конец поста — встроенный блок (контекстный текст по теме)
+2. После 3-го поста за сессию — тост снизу (10 сек)
+3. После закрытия PDF — блок при возврате
+4. Каталог БАДов — inline-карточка после 5–6 позиций
+5. Баннер на главной — ✅ уже сделано
 
 ### T-QUIZ-COMPLETED-AT: quiz_completed_at не пишется в users
 **Приоритет:** 🟡 | **Статус:** Не начато
+**Проблема:** UPDATE в quizFinish() не срабатывает для анонимов (currentUser=null).
+**Решение:** Проверить код, для анонимов — записать при следующей авторизации.
 
 ---
 
 ## ✅ Выполнено (28.04.2026)
 
-### T-GAME-1..6 ✅ | T-GAME-AUTH-FIX ✅ | T-GAME-BUG-1..3 ✅
-### T-ANALYTICS ✅ | T-QUIZ-ANALYTICS ✅ | T-QUIZ-BANNER ✅
-### T-HIDDEN-POSTS ✅ | T-GIT-SYNC ✅
+### T-GAME-UI-1..5 ✅ (commits 51553e2, a0c04d2)
+**Файлы:** `games/iron/index.html`, `games/index.html`, `index.html`
 
----
-
-### T-GAME-UI-1..5 ✅ (commit 51553e2 + a0c04d2)
-
-**UI-1:** Рейтинг — модальное окно по центру экрана (было: bottom sheet)
-- `.lb-overlay`: `align-items:center`, `padding:20px`
-- `.lb-modal`: `border-radius:24px` (все стороны), `max-height:70vh`, тень
-
-**UI-2:** Навигация назад
-- `iron/index.html`: кнопка «← Назад» → `/games/` (было: «← Навигатор» → `/`)
-- `games/index.html`: кнопка «← В Навигатор» → `/`
-
-**UI-3:** Текст кнопки шаринга
-- «💌 Отправь подруге» → «📤 Поделиться игрой» везде (сплэш, пауза, toast)
-
-**UI-4:** Убран переключатель плитка/список в `index.html`
-- `nav-list` всегда отображается плиткой (grid)
-- Удалены: `setNavView()`, `restoreNavView()`, `localStorage('nav_view')`, CSS `.nav-view-toggle`
-
-**UI-5 (критично):** Хаб игр тормозил из-за `telegram-web-app.js` в `<head>` без async
-- `games/index.html`: SDK перенесён в конец body, затем в head с `async onload="_tgInit()"`
-- `games/iron/index.html`: оба SDK (`telegram` + `vk`) получили `async`, добавлен `_tgReady()` onload
-- Серая полоска в Telegram: `tg.ready()` теперь вызывается через `onload` как можно раньше
+- **UI-1:** Рейтинг — модал по центру экрана (`align-items:center`, `border-radius:24px`, `max-height:70vh`)
+- **UI-2:** `iron/`: «← Назад» → `/games/`; `games/`: «← В Навигатор» → `/`
+- **UI-3:** «💌 Отправь подруге» → «📤 Поделиться игрой» везде (сплэш, пауза, toast)
+- **UI-4:** Убран переключатель плитка/список в `index.html`; nav всегда плитка; удалены `setNavView()`, `restoreNavView()`, CSS `.nav-view-toggle`
+- **UI-5 (критично):** `telegram-web-app.js` переведён на `async onload` в `<head>` — устранена серая полоска в TG и долгая загрузка хаба
 
 ---
 
 ### T-GAME-DISCOUNT-FIX ✅ (commits 2615128..9cfe21a)
+**Файлы:** `games/iron/index.html`, `index.html`, `games/index.html`
 
-**Проблема:** экран reward показывал промокод FE-XXXX, кнопка скрыта за панелью браузера, скидка терялась при «Не сейчас».
+**Удалено:**
+- Экран `#reward`, промокоды FE-XXXX, таймер, «Код отправлен на email»
+- `claimReward()`, `startPromoTimer()`, `copyPromoCode()`, `skipReward()`
+- CSS `.promo-*`, `.reward-*` (~170 строк)
 
-**Что сделано:**
+**Добавлено:**
 
-1. **Удалён экран `#reward`** и вся логика промокодов:
-   - `claimReward()`, `startPromoTimer()`, `copyPromoCode()`, `skipReward()`
-   - CSS `.promo-*`, `.reward-*` (~170 строк)
-   - `endGame()` → всегда `showFinal()` напрямую
+1. **Алгоритм скидки** (в `endGame()`):
+   - ≥ 100% → скидка 50% (745₽)
+   - ≥ 75% → скидка 25% (1118₽)
+   - < 75% → без скидки (1490₽)
+   - Скидка записывается в `localStorage.game_discount` сразу при окончании игры (живёт 24ч)
 
-2. **Финальный экран переработан** (`games/iron/index.html`):
-   - `padding-bottom: env(safe-area-inset-bottom, 80px)` — кнопки не скрываются
-   - Блок `.cta-discount-block` с процентом скидки
-   - Порядок CTA: купить гайд → таблетки → бесплатные → посты → рейтинг → поделиться → заново
+2. **Финальный экран** (новый `renderCTA`):
+   - Сценарий А (авторизован + email): кнопка «🔥 Купить за X₽ ~~1490₽~~» → `openGuideWithDiscount()` → переход на страницу гайда
+   - Сценарий Б (не авторизован): инлайн email+OTP, после входа — кнопка покупки
+   - `padding-bottom: env(safe-area-inset-bottom, 80px)` — кнопки не скрываются за панелью
+   - Порядок: купить → таблетки → бесплатные → посты → рейтинг → поделиться → заново
 
-3. **Сценарий А (авторизован, есть email):**
-   - Кнопка «🔥 Купить за 745₽ ~~1490₽~~» → `openGuideWithDiscount()` → переход на страницу гайда в основном приложении
-
-4. **Сценарий Б (не авторизован):**
-   - Инлайн-форма email + OTP прямо в CTA-блоке
-   - После успешного входа → re-render CTA → показывается кнопка покупки
-
-5. **Скидка сохраняется 24 часа** (`localStorage.game_discount`):
-   - Записывается сразу в `endGame()` при `discount > 0`
-   - Выживает «Не сейчас», закрытие приложения, любую навигацию
-   - `index.html openGuideDetail()` читает `game_discount` из localStorage и подставляет в buy-bar: **745₽ ~~1490₽~~** + «🔥 Скидка за игру · 24ч»
+3. **Страница гайда (`index.html`):**
+   - `openGuideDetail()` читает `game_discount` из localStorage
+   - Если не истёк: buy-bar показывает **745₽ ~~1490₽~~** + «🔥 Скидка за игру · 24ч»
    - `buyGuide()` вызывается с дисконтной ценой → Prodamus с правильной суммой
 
-6. **`buildPaymentUrl(price)`** — клиентская генерация Prodamus URL (та же схема что в `index.html`):
-   - `https://nutriciologist.payform.ru/` + параметры: slug, price, telegram_id, email, order_id, webhook
+4. **`buildPaymentUrl(price)`** — клиентская генерация Prodamus URL (та же схема что в `index.html`): `https://nutriciologist.payform.ru/` + slug, price, telegram_id, email, order_id, webhook
 
-7. **Auth fix** (`initGame()`):
-   - Читает `sessionToken` И `session_token` из localStorage (main app пишет `session_token`, игра — `sessionToken`)
-   - `saveScore()` также исправлен аналогично
+5. **Auth fix** (`initGame()`):
+   - Читает оба ключа: `sessionToken` И `session_token` (main app пишет `session_token`)
+   - `saveScore()` аналогично исправлен
    - `tgNow = window.Telegram?.WebApp` внутри `initGame()` — защита от async SDK race
 
-8. **Рейтинг из хаба** (`games/index.html`):
-   - Кнопка «🏆 Рейтинг» больше не переходит в игру
-   - Открывает модал прямо на странице хаба, подгружает данные напрямую из API
-   - Никакой загрузки игры, никакой авторизации
+6. **Рейтинг из хаба** (`games/index.html`):
+   - «🏆 Рейтинг» больше не переходит в игру
+   - Открывает модал прямо на хабе, подгружает API напрямую
+   - CSS/HTML/JS рейтинга добавлены в `games/index.html`
+
+---
+
+### T-ANALYTICS ✅
+- 12 SQL-запросов, период 15–28 апреля 2026
+- DAU ~45, 405 юзеров; Топ: Железо/анемия, гайд «Железодефицит» — 174 просмотра
+- Платформы: MAX 832 сессии / 161 юзер, TG 388 / 162, web 140 / 9
+- Покупки (14 дней): 5 продаж, 6160₽
+- Результаты: `miniapp-tasks/ANALYTICS.md`
+
+### T-QUIZ-ANALYTICS ✅ | T-QUIZ-BANNER ✅ | T-HIDDEN-POSTS ✅ | T-GIT-SYNC ✅
+### T-GAME-1..6 ✅ | T-GAME-AUTH-FIX ✅ | T-GAME-BUG-1..3 ✅
 
 ---
 
