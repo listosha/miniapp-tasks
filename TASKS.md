@@ -17,24 +17,31 @@
 ## ✅ Выполнено (30.04.2026)
 
 ### T-WELCOME-SKIP-FIX ✅ (commit 7580a6b)
-- `quizSkip()` инкрементирует `quiz_prompt_dismiss_total` вместо `quiz_completed=true` — промпты работают до 3 пропусков
-- `initWelcomeBanner()`: после `tour_completed` отдельный счётчик `welcome_banner_after_tour` (макс 5 сессий)
+- `quizSkip()`: инкрементирует `quiz_prompt_dismiss_total` вместо `quiz_completed=true` — после 3 пропусков всё блокируется, не сразу
+- `initWelcomeBanner()`: после `tour_completed` — отдельный счётчик `welcome_banner_after_tour` (макс 5 сессий), потом баннер исчезает
 
 ### T-WELCOME-PRIORITY ✅ (commit 2f6a4f6)
-`maybeShowStickyOnHome()` проверяет видимость `#welcomeBanner` — sticky не показывается пока полоска на экране. После × → sticky может появиться.
+- `maybeShowStickyOnHome()` проверяет `#welcomeBanner`: если полоска видна — sticky не показывается
+- После × на полоске → sticky может появиться в ту же сессию
 
 ### T-WELCOME-BANNER ✅ (commit dabb32c)
+**Файлы:** `index.html`, `supabase/migrations/20260430_welcome_rls.sql`
+- Терракотовая полоска `#b8541e` над плитками меню. Показывается первые 7 сессий (до тура) + 5 сессий после тура
+- Клик на текст → открывает welcome-тур; × → sessionStorage dismiss (только эта сессия)
+- `isWelcomeActive()` блокирует sticky/feedcard/postpdf пока splash или тур открыты
+- После skip splash / close тура → `initWelcomeBanner()` + `maybeShowStickyOnHome()` запускаются автоматически
+- RLS: `welcome_banner_shown/clicked/dismissed` добавлены в обе политики на VPS
+
 ### T-WELCOME-1 ✅ (commit 8450611)
-8 welcome_* + welcome_banner_* event_type добавлены в обе RLS политики analytics_events (VPS)
+- `welcome_splash_*`, `welcome_tour_*`, `welcome_banner_*` event_type добавлены в обе RLS политики analytics_events (применено на VPS через SSH)
 
 ### T-WELCOME-2 + T-WELCOME-3 ✅ (commits 97b0429, c7b6e10)
-- Splash + 6-экранный тур с плиточной сеткой, автоскролл экран 3, CTA → квиз
-- Фикс: квиз через setTimeout(50ms); шрифты увеличены
-**Файлы:** `index.html`, `supabase/migrations/20260430_welcome_rls.sql`
-- Терракотовая полоска #b8541e над плитками. 7 сессий max, не показывается при tour_completed. Клик → тур, × → sessionStorage dismiss
-- `isWelcomeActive()` блокирует sticky/feedcard/postpdf пока splash/тур открыты
-- После skip/close → `initWelcomeBanner()` + `maybeShowStickyOnHome()` запускаются
-- RLS: welcome_banner_shown/clicked/dismissed добавлены в обе политики
+**Файл:** `index.html`
+- Splash: bottom-sheet при первом визите (localStorage.welcome_seen отсутствует). 4 плитки со статами, «Подробнее» → тур, «Пропустить» → закрыть навсегда
+- Тур: 6 экранов, плиточная сетка 2 колонки (копия меню), тултип + подсветка 1-2 карточек (остальные opacity:0.2)
+- Экран 3 — автоскролл к Эфирам/Подкастам; экран 6 — «Подобрать для меня →» → квиз
+- Квиз открывается через setTimeout(50ms) после закрытия тура
+- Шрифты: tooltip 16px bold, заголовок 21px, стат-числа 24px, кнопки 16px
 
 ## ✅ Выполнено (29.04.2026)
 
