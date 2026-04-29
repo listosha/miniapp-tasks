@@ -16,6 +16,9 @@
 
 ## ✅ Выполнено (30.04.2026)
 
+### T-WELCOME-PRIORITY ✅ (commit 2f6a4f6)
+`maybeShowStickyOnHome()` проверяет видимость `#welcomeBanner` — sticky не показывается пока полоска на экране. После × → sticky может появиться.
+
 ### T-WELCOME-BANNER ✅ (commit dabb32c)
 ### T-WELCOME-1 ✅ (commit 8450611)
 8 welcome_* + welcome_banner_* event_type добавлены в обе RLS политики analytics_events (VPS)
