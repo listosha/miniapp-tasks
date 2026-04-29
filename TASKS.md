@@ -27,6 +27,7 @@
 ### T-WELCOME-BANNER ✅ (commit dabb32c)
 **Файлы:** `index.html`, `supabase/migrations/20260430_welcome_rls.sql`
 - Терракотовая полоска `#b8541e` над плитками меню. Показывается первые 7 сессий (до тура) + 5 сессий после тура
+- Текст: «Ты используешь только 10% приложения → Узнай больше!» (15px, font-weight 800)
 - Клик на текст → открывает welcome-тур; × → sessionStorage dismiss (только эта сессия)
 - `isWelcomeActive()` блокирует sticky/feedcard/postpdf пока splash или тур открыты
 - После skip splash / close тура → `initWelcomeBanner()` + `maybeShowStickyOnHome()` запускаются автоматически
