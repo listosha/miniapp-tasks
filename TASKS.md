@@ -42,6 +42,10 @@
 
 ## ✅ Выполнено (29.04.2026)
 
+### T-QUIZ-EMAIL-FIX ✅ (commit 20b94de)
+- Bug 1: overlay имел `display:flex` в inline-стиле поверх `hidden` → показывался при загрузке. Исправлено: `display:none` в стиле, `hidden` убран
+- Bug 2: фокус на `quizEmailInp` через `requestAnimationFrame` после закрытия шторки
+
 ### T-QUIZ-ENTRY: Sticky на входе + настойчивый email ✅ (commit ca035fd)
 **Файлы:** `index.html`
 - Sticky-плашка: `maybeShowStickyOnHome()` вызывается в конце `loadData()` если `!__deepLinkActive`. Показывает бар через 500мс без ожидания скролла
