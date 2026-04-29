@@ -34,13 +34,17 @@
 **Задача:** Проверить код — где именно вызывается trackEvent('quiz_shown'). Убедиться, что каждый старт квиза (из любой точки) генерирует quiz_shown перед quiz_started.
 
 ### T-QUIZ-COMPLETED-AT: quiz_completed_at не пишется в users
-**Приоритет:** 🟡 | **Статус:** Не начато
-**Проблема:** UPDATE в quizFinish() не срабатывает для анонимов (currentUser=null).
-**Решение:** Проверить код, для анонимов — записать при следующей авторизации.
+**Приоритет:** 🟡 | **Статус:** ✅ Выполнено (29.04)
 
 ---
 
 ## ✅ Выполнено (29.04.2026)
+
+### T-QUIZ-COMPLETED-AT: Синхронизация quiz_completed_at при авторизации ✅
+**Файлы:** `index.html`, `supabase/functions/upsert-user/index.ts` (commit 4e32a52)
+- Клиент: все три точки вызова `upsert-user` (TG/MAX, session restore, email OTP) теперь передают `quiz_completed: localStorage.getItem('quiz_completed')==='true'`
+- Edge Function: после успешного логина, если `quiz_completed===true` и `quiz_completed_at` в БД null — пишет текущий timestamp
+- Edge Function задеплоена на VPS напрямую через SCP
 
 ### T-REMOVE-CAROUSEL: Убрать карусель и квиз-баннер с главной
 **Файлы:** `index.html` (dev, commits 2c33250, 29014c3)
