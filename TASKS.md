@@ -36,6 +36,12 @@
 
 ## ✅ Выполнено (29.04.2026)
 
+### T-GUIDE-PAGE-LAYOUT ✅ (commit b69a198)
+**Файл:** `index.html`
+- Новый порядок: название → продающее описание (for_whom / inside / benefits / chapters) → фраза «Гайд читается в приложении» → кнопка «Поделиться» → buy-bar
+- Share-кнопка вынесена из hero-блока, теперь full-width под контентом
+- buy-bar и логика скидки за игру не тронуты
+
 ### T-GAME-NAV ✅ (commits 1315996, e2b02b6, d992d09)
 **Файлы:** `index.html`, `games/iron/index.html`
 - Flash: inline `<style>` скрывает `#home-page` при `?goto=` в URL; `handleGoto()` снимает его и чистит `?goto=` через `history.replaceState()`
