@@ -42,6 +42,12 @@
 
 ## ✅ Выполнено (29.04.2026)
 
+### T-GAME-NAV ✅ (commit 1315996)
+**Файлы:** `index.html`, `games/iron/index.html`
+- Flash: inline `<style>` скрывает `#home-page` сразу при `?goto=` в URL; `handleGoto()` снимает его перед открытием раздела
+- Back: игра сохраняет state в `sessionStorage.game_iron_results` + ставит флаг `game_results_origin=1` перед уходом; `navBack()` проверяет флаг и идёт на `/games/iron/`; `tryGetProfile()` в игре восстанавливает финальный экран
+- «Полезные игры» перемещена на первое место в меню, фон иконки `#ff5a1f` (ярко-оранжевый)
+
 ### T-QUIZ-SKIP-FIX ✅ (commit 18eeb15)
 - `quizEmailWarnOverlay` z-index был 10010, `quizOverlay` — 100000. Шторка появлялась позади белого оверлея, кнопка выглядела неработающей. Исправлено: z-index 100010
 
