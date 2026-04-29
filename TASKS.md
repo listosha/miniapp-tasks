@@ -16,6 +16,10 @@
 
 ## ✅ Выполнено (30.04.2026)
 
+### T-WELCOME-SKIP-FIX ✅ (commit 7580a6b)
+- `quizSkip()` инкрементирует `quiz_prompt_dismiss_total` вместо `quiz_completed=true` — промпты работают до 3 пропусков
+- `initWelcomeBanner()`: после `tour_completed` отдельный счётчик `welcome_banner_after_tour` (макс 5 сессий)
+
 ### T-WELCOME-PRIORITY ✅ (commit 2f6a4f6)
 `maybeShowStickyOnHome()` проверяет видимость `#welcomeBanner` — sticky не показывается пока полоска на экране. После × → sticky может появиться.
 
