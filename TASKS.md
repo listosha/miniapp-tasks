@@ -28,6 +28,15 @@
 
 ---
 
+## ✅ Выполнено (30.04.2026)
+
+### T-WELCOME-BANNER ✅ (commit dabb32c)
+**Файлы:** `index.html`, `supabase/migrations/20260430_welcome_rls.sql`
+- Терракотовая полоска #b8541e над плитками. 7 сессий max, не показывается при tour_completed. Клик → тур, × → sessionStorage dismiss
+- `isWelcomeActive()` блокирует sticky/feedcard/postpdf пока splash/тур открыты
+- После skip/close → `initWelcomeBanner()` + `maybeShowStickyOnHome()` запускаются
+- RLS: welcome_banner_shown/clicked/dismissed добавлены в обе политики
+
 ## ✅ Выполнено (29.04.2026)
 
 ### T-QUIZ-COMPLETED-AT ✅
