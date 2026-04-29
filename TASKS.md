@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 29.04.2026 (вечер)
+> Обновлено: 29.04.2026 (ночь)
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -30,23 +30,18 @@
 ### T-QUIZ-SHOWN-STARTED: Нестыковка quiz_shown и quiz_started
 **Приоритет:** 🟡 | **Статус:** Не начато
 **Проблема:** quiz_shown=6, quiz_started=9. Started > shown — нелогично.
-**Гипотеза:** quiz_shown трекается только при открытии через баннер, а старты из feedcard/sticky/postpdf не генерируют quiz_shown.
-**Задача:** Проверить код — где именно вызывается trackEvent('quiz_shown'). Убедиться, что каждый старт квиза (из любой точки) генерирует quiz_shown перед quiz_started.
-
-### T-QUIZ-SHOWN-STARTED: Нестыковка quiz_shown и quiz_started
-**Приоритет:** 🟡 | **Статус:** Не начато
-**Проблема:** quiz_shown=6, quiz_started=9. Started > shown — нелогично.
 **Задача:** Убедиться, что каждый старт квиза (из любой точки) генерирует quiz_shown перед quiz_started.
 
 ---
 
 ## ✅ Выполнено (29.04.2026)
 
-### T-GAME-NAV ✅ (commit 1315996)
+### T-GAME-NAV ✅ (commits 1315996, e2b02b6, d992d09)
 **Файлы:** `index.html`, `games/iron/index.html`
-- Flash: inline `<style>` скрывает `#home-page` сразу при `?goto=` в URL; `handleGoto()` снимает его перед открытием раздела
-- Back: игра сохраняет state в `sessionStorage.game_iron_results` + ставит флаг `game_results_origin=1` перед уходом; `navBack()` проверяет флаг и идёт на `/games/iron/`; `tryGetProfile()` в игре восстанавливает финальный экран
-- «Полезные игры» перемещена на первое место в меню, фон иконки `#ff5a1f` (ярко-оранжевый)
+- Flash: inline `<style>` скрывает `#home-page` при `?goto=` в URL; `handleGoto()` снимает его и чистит `?goto=` через `history.replaceState()`
+- Рефреш → главная: `handleDeepLink` срабатывал повторно т.к. `initDataUnsafe.start_param` в TG/MAX не меняется. Фикс: `sessionStorage.dl_done` — deep link один раз за сессию
+- Back: игра сохраняет state в `sessionStorage.game_iron_results` + флаг `game_results_origin=1`; `navBack()` возвращает на `/games/iron/`; `tryGetProfile()` восстанавливает финальный экран
+- «Полезные игры» — первая в меню, фон иконки `#ff5a1f`
 
 ### T-QUIZ-SKIP-FIX ✅ (commit 18eeb15)
 - `quizEmailWarnOverlay` z-index был 10010, `quizOverlay` — 100000. Шторка появлялась позади белого оверлея, кнопка выглядела неработающей. Исправлено: z-index 100010
