@@ -36,6 +36,11 @@
 
 ## ✅ Выполнено (29.04.2026)
 
+### T-SYNC-PROD ✅ (merge commit 8c3f916)
+- Все изменения 28-29.04 смержены из `dev` в `main`
+- GitHub Actions `deploy-main.yml` задеплоил на `app.listoshenkov.ru`
+- Edge Functions не трогались (уже на проде)
+
 ### T-GUIDE-PAGE-LAYOUT ✅ (commit b69a198)
 **Файл:** `index.html`
 - Новый порядок: название → продающее описание (for_whom / inside / benefits / chapters) → фраза «Гайд читается в приложении» → кнопка «Поделиться» → buy-bar
