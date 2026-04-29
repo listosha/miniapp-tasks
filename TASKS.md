@@ -33,12 +33,21 @@
 **Гипотеза:** quiz_shown трекается только при открытии через баннер, а старты из feedcard/sticky/postpdf не генерируют quiz_shown.
 **Задача:** Проверить код — где именно вызывается trackEvent('quiz_shown'). Убедиться, что каждый старт квиза (из любой точки) генерирует quiz_shown перед quiz_started.
 
-### T-QUIZ-COMPLETED-AT: quiz_completed_at не пишется в users
-**Приоритет:** 🟡 | **Статус:** ✅ Выполнено (29.04)
+### T-QUIZ-SHOWN-STARTED: Нестыковка quiz_shown и quiz_started
+**Приоритет:** 🟡 | **Статус:** Не начато
+**Проблема:** quiz_shown=6, quiz_started=9. Started > shown — нелогично.
+**Задача:** Убедиться, что каждый старт квиза (из любой точки) генерирует quiz_shown перед quiz_started.
 
 ---
 
 ## ✅ Выполнено (29.04.2026)
+
+### T-QUIZ-ENTRY: Sticky на входе + настойчивый email ✅ (commit ca035fd)
+**Файлы:** `index.html`
+- Sticky-плашка: `maybeShowStickyOnHome()` вызывается в конце `loadData()` если `!__deepLinkActive`. Показывает бар через 500мс без ожидания скролла
+- Deep link: поведение не изменилось — бар появляется при доскролле до конца поста
+- Email warning: кнопка «Пропустить →» на шаге email показывает bottom-sheet предупреждение. Кнопки: «Ввести email» (фокус на инпут) и «Всё равно пропустить» (вызывает `quizFinish()`)
+- Аналитика: `quiz_email_skip_warning_shown`
 
 ### T-QUIZ-COMPLETED-AT: Синхронизация quiz_completed_at при авторизации ✅
 **Файлы:** `index.html`, `supabase/functions/upsert-user/index.ts` (commit 4e32a52)
