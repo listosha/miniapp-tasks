@@ -9,6 +9,8 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-012: Ближний круг — автотестирование на dev ✅
+
 ### T-PRIVATE-011: Ближний круг — минимальная админка ✅
 
 ### T-PRIVATE-010: Ближний круг — таб «Профиль» ✅
@@ -23,6 +25,15 @@
 ---
 
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-012: Ближний круг — автотестирование на dev ✅
+**API-тесты (curl): 13/13 ✓**
+`check_access` (hasAccess=true, 90 дней) · `get_library` (45 материалов) · `get_health_profile` · `get_analyses` · `get_my_threads` · `get_dependants` · `get_zoom_events` · `get_markers_catalog` · `search_markers` · `add_journal_entry` · `get_journal` (запись появилась) · `add_thread_message` · `get_my_threads` (сообщение появилось)
+
+**UI-тесты (Playwright Chromium): 12/12 ✓**
+T1 лендинг без токена · T2 лендинг а не SPA · T3 SPA с токеном · T4 Материалы 45 карточек · T5 детальный экран материала · T6 чат форма · T7 отправка сообщения · T8 Анализы кнопка · T9 Карта форма · T10 Профиль «Доступ активен» · T11 admin.html заблокирован · T12 admin дашборд счётчики (1,2,0,0)
+
+Скрипт: `test_private.js`. Нюанс: вместо `page.click('[data-tab=...]')` используется `page.evaluate(()=>switchTab(...))` — мобильные табы в headless кликаются ненадёжно.
 
 ### T-PRIVATE-011: Ближний круг — минимальная админка ✅
 - `/var/www/dev/private/admin.html` — отдельная страница, доступна только admin (user_id=1 с корректным hex HMAC токеном)
