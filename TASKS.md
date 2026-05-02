@@ -9,12 +9,25 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-005: Ближний круг — Этап 3, лендинг + навигация ✅
+
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
 
 ---
 
+---
+
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-005: Ближний круг — лендинг + навигация ✅
+- `private/index.html` создан: дизайн-токены из `styles.css` (палитра Sand, Nunito+Lora), лендинг из `landing.jsx`, SPA-скелет с 6 табами
+- Лендинг: Hero, Features (5 карточек), Pricing с переключателем «Я пенсионер(ка)» (30д: 3000/1500₽, 90д: 7200/3600₽), HowItWorks, цитата
+- SPA: табы Главное/Алексей/Анализы/Материалы/Карта/Профиль; сайдбар десктоп от 768px; баннер истечения; профиль-вкладка
+- JS: `check_access` → лендинг или SPA; `?payment=success` → toast; `?section=` → открыть таб; `private_nav_state` в localStorage
+- Карточка «Ближний круг» 🌿 добавлена в nav-list `index.html` (после Мои беспокойства)
+- `openInnerCircle()` сохраняет `app_return_state`; `?return=true` восстанавливает позицию в навигаторе
+- Nginx: добавлен `location /private/` с `microphone=(self)`; HTTP 200 ✓
 
 ### T-PRIVATE-004: Ближний круг — `prodamus-webhook` + продукты в БД ✅
 - Продукты id 14-17: `product_type = 'inner_circle'`, `content_access` заполнен slugами (`private_30`, `private_30_senior`, `private_90`, `private_90_senior`)
