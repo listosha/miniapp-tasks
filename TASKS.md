@@ -28,6 +28,44 @@
 
 ---
 
+## ✅ Выполнено (03.05.2026)
+
+### T-HOMESCREEN-DATA: Данные для макета главной ✅
+
+**Публичный URL обложек эфиров:**
+```
+https://app.listoshenkov.ru/efiry/<thumbnail>
+```
+Файлы лежат как статика на VPS (`/var/www/app/efiry/`). Supabase Storage здесь не используется.
+Проверено: `https://app.listoshenkov.ru/efiry/05_shchitovidka_nelzya.jpg` → **200 OK**.
+
+**Все эфиры (20 шт.):**
+
+| id | title | duration | thumbnail |
+|----|-------|----------|-----------|
+| efiry-1 | 5 вещей, которые гробят вашу щитовидку | 5:11 | 05_shchitovidka_nelzya.jpg |
+| efiry-2 | Что скрывают производители БАДов? | 8:23 | 01_gala_artlife.jpg |
+| efiry-3 | 3 ошибки, которые убивают эффект от добавок | 27:52 | 02_conf_artlife_2023.jpg |
+| efiry-4 | Щитовидка на износ: чем опасен гипертиреоз | 38:37 | 10_gipertireoz.jpg |
+| efiry-5 | 80% людей едят неправильно. А вы? | 1:41:24 | 19_pravila_pitaniya.jpg |
+| efiry-6 | ТТГ в норме? Это ещё ничего не значит | 1:00:22 | 06_shchitovidka_analizy.jpg |
+| efiry-7 | Статины: пить или бросить? Разбор без паники | 58:28 | 20_statiny.jpg |
+| efiry-8 | Почему вы болеете, даже если пьёте витамины | 1:03:04 | 14_immunitet.jpg |
+| efiry-9 | Витамин D без магния — деньги на ветер | 41:21 | 23_vitamin_d_mg.jpg |
+| efiry-10 | Как починить ЖКТ без таблеток | 2:15:15 | 13_zdorovoe_pischevarenie.jpg |
+| efiry-11 | Ваш кишечник управляет вашим мозгом | 59:36 | 12_zagadochnoe_pischevarenie.jpg |
+| efiry-12 | Печень молчит, пока не поздно. Какие анализы сдать? | 54:42 | 07_pechen_analizy.jpg |
+| efiry-13 | Щитовидка: Анализы, которые врач не назначит | 1:00:22 | 08_analizy_shchitovidka.jpg |
+| efiry-14 | Спите 8 часов, а сил нет? Виноваты надпочечники | 1:00:59 | 21_nadpochechniki.jpg |
+| efiry-15 | Скрытый враг: почему вы полнеете и устаёте | 58:35 | 15_insulinorezistentnost.jpg |
+| efiry-16 | Какие анализы реально нужны, а какие — деньги на ветер | 1:21:00 | 18_lab_issledovaniya.jpg |
+| efiry-17 | Железо на нуле, а щитовидка тормозит. Что делать? | 1:23:47 | 11_zhelezo_shchitovidka.jpg |
+| efiry-18 | Магний: почему вы принимаете его зря | 29:09 | 03_artlife_magniy.jpg |
+| efiry-19 | Гастрит не пройдёт сам. Вот что реально поможет | 1:04:32 | 22_gastrit.jpg |
+| efiry-20 | Блогер или врач? Кому верить в вопросах здоровья | 1:03:17 | 17_kogo_slushaete.jpg |
+
+---
+
 ## ✅ Выполнено (02.05.2026)
 
 ### T-PRIVATE-017: Финальное тестирование — 56/56 ✅
