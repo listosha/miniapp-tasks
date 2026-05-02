@@ -9,6 +9,8 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-016: Финальное тестирование prod ✅
+
 ### T-PRIVATE-015: Ближний круг — GitHub Actions + перенос dev → prod ✅
 
 ### T-PRIVATE-014: Ближний круг — Zoom + Дневник + Курс + pg_cron ✅
@@ -25,6 +27,23 @@
 ---
 
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-016: Финальное тестирование prod — 52/52 ✅
+**52/52 (100%)** — `test_prod.js` (Playwright + API, app.listoshenkov.ru)
+
+| Блок | Результат |
+|------|-----------|
+| 1. Новый функционал (Zoom, Дневник, Курс, pg_cron) | **14/14** |
+| 2. Prod-специфичные (HTTP, CORS, Nginx, BK карточка) | **10/10** |
+| 3. Регрессия (API, хаб, профиль) | **8/8** |
+| 4. Производительность | **6/6** _(лендинг 180ms, SPA 169ms, библиотека 160ms, табы max 125ms)_ |
+| 5. Сценарии пользователя | **8/8** |
+| 6. Целостность данных (DB) | **6/6** |
+
+**Найдено и исправлено в процессе:**
+1. **`complete_lesson` → `user_progress`**: таблица имеет `lesson_id` как PK+FK на `course_lessons` — создана отдельная `private_course_progress (user_id, content_id, completed_at)`, `get_course` и `complete_lesson` переведены на неё
+2. **`payment=success` + `hasAccess=true` показывал лендинг**: в `init()` ветка `isPaymentReturn&&hasAccess` не вызывала `hide('icLanding')` — добавлен явный `hide()`
+3. **`finally()` блок показывал лендинг при активном welcome overlay**: добавлена проверка `document.querySelectorAll('.ic-overlay.active').length>0`
 
 ### T-PRIVATE-015: GitHub Actions + перенос dev → prod ✅
 - Workflow `deploy-main.yml` уже включает rsync `./ → /var/www/app/` — `private/` не нужно добавлять отдельно
