@@ -9,6 +9,8 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-015: Ближний круг — GitHub Actions + перенос dev → prod ✅
+
 ### T-PRIVATE-014: Ближний круг — Zoom + Дневник + Курс + pg_cron ✅
 
 ### T-PRIVATE-013: Ближний круг — справочник маркеров ✅
@@ -23,6 +25,15 @@
 ---
 
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-015: GitHub Actions + перенос dev → prod ✅
+- Workflow `deploy-main.yml` уже включает rsync `./ → /var/www/app/` — `private/` не нужно добавлять отдельно
+- Скопированы `/var/www/dev/private/index.html` (2938 строк) и `admin.html` в `~/miniapp/private/`
+- Commit: `feat: Ближний круг — private section v1 (T-001 through T-014)` + push → GitHub Actions задеплоил
+- **HTTP 200** `https://app.listoshenkov.ru/private/` ✓
+- **CORS** с `app.listoshenkov.ru` → `Unauthorized` (правильный ответ на invalid token) ✓
+- **IC_HIDDEN_BK** в prod `index.html` — скрыто ✓ (карточка БК не показывается)
+- `/private/` на prod содержит «Ближний круг» × 5 ✓
 
 ### T-PRIVATE-014: Zoom + Дневник + Курс + pg_cron ✅
 **Блок А — Zoom-разборы в библиотеке:** кнопка «📹 Разборы» в type-strip библиотеки → `loadZoomSection()` — предстоящие события (карточки с датой и кнопкой «Буду»/«Записан» через `register_zoom`), мои записи (`get_my_recordings`), открытие через `get_content` signed URL. Пустое состояние с текстом.
