@@ -9,12 +9,23 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-003: Ближний круг — Edge Function `private-admin` ✅
+
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
 
 ---
 
+---
+
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-003: Ближний круг — Edge Function `private-admin` ✅
+- Задеплоена на production (`/opt/beget/supabase/volumes/functions/private-admin/index.ts`)
+- Все 19 actions по спеке 7.2: подписчики, переписка, анализы, рекомендации, протоколы, контент, разборы, маркеры, сводка
+- Telegram-уведомления при: продлении доступа, ответе в чате, новой рекомендации
+- Нюанс: `verifyAdminToken` использует `crypto.subtle` + base64 (Web Crypto API) — другой формат токена чем у `private-data` (hex HMAC). Фронтенд должен генерировать admin-токены соответственно.
+- Тесты: 401 на невалидный токен ✓ | 403 на не-админа ✓ | `get_daily_summary` с admin-токеном ✓
 
 ### T-PRIVATE-002: Ближний круг — Edge Function `private-data` ✅
 - Задеплоена на production (`/opt/beget/supabase/volumes/functions/private-data/index.ts`)
