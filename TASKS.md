@@ -9,12 +9,22 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-002: Ближний круг — Edge Function `private-data` ✅
+
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
 
 ---
 
+---
+
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-002: Ближний круг — Edge Function `private-data` ✅
+- Задеплоена на production (`/opt/beget/supabase/volumes/functions/private-data/index.ts`)
+- Исправлено: в спеке `getUserFromToken` обращалась к несуществующей таблице `sessions` — заменена на HMAC-верификацию (формат `userId:timestamp:sig`, как в `game-action` и `upsert-user`)
+- Таблица сессий в проекте не нужна: токен самодостаточен, проверяется через `SUPABASE_SERVICE_ROLE_KEY`
+- Тесты: 401 на невалидный токен ✓ | `{"markers":[]}` на `get_markers_catalog` ✓ | `{"hasAccess":false,...}` на `check_access` ✓
 
 ### T-PRIVATE-001: Ближний круг — Этап 1, фундамент БД ✅
 **Файл миграции:** `T-PRIVATE-001-fixed.sql` (исправлен: products не имеет slug)
