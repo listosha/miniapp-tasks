@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 30.04.2026
+> Обновлено: 02.05.2026
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -11,6 +11,18 @@
 
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
+
+---
+
+## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-001: Ближний круг — Этап 1, фундамент БД ✅
+**Файл миграции:** `T-PRIVATE-001-fixed.sql` (исправлен: products не имеет slug)
+- 14 таблиц созданы в production БД, RLS включён на всех: `user_access`, `user_dependants`, `analysis_markers`, `private_content`, `library_tags`, `library_item_tags`, `zoom_events`, `zoom_registrations`, `user_analyses`, `user_health_profile`, `health_journal`, `user_protocols`, `user_recommendations`, `private_comments`
+- 30 тегов в `library_tags` (19 тем + 7 форматов + 4 действия)
+- 4 продукта добавлены в `products` (Ближний круг 30/90 дней + льготные)
+- 3 storage bucket созданы: `user-analyses`, `voice-messages`, `private-content`
+- Нюанс: `products` не имеет колонки `slug` — использован `WHERE NOT EXISTS` по `name`
 
 ---
 
