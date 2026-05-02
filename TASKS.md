@@ -16,6 +16,12 @@
 
 ## ✅ Выполнено (02.05.2026)
 
+### T-PRIVATE-004: Ближний круг — `prodamus-webhook` + продукты в БД ✅
+- Продукты id 14-17: `product_type = 'inner_circle'`, `content_access` заполнен slugами (`private_30`, `private_30_senior`, `private_90`, `private_90_senior`)
+- `prodamus-webhook`: добавлены `notifyTelegram`, `product_type` в запрос продукта, ветка `inner_circle` после insert purchase
+- Ветка: вычисляет дни (30/90), is_senior по slug, upsert `user_access` (продление если активна), TG уведомление пользователю и админу (788984484)
+- Идемпотентность для inner_circle: по `prodamus_order` (а не user+product), чтобы не блокировать renewals
+
 ### T-PRIVATE-003: Ближний круг — Edge Function `private-admin` ✅
 - Задеплоена на production (`/opt/beget/supabase/volumes/functions/private-admin/index.ts`)
 - Все 19 actions по спеке 7.2: подписчики, переписка, анализы, рекомендации, протоколы, контент, разборы, маркеры, сводка
