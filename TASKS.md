@@ -9,6 +9,8 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-012e+f: Ближний круг — безопасность, изоляция данных, мобильный UX ✅
+
 ### T-PRIVATE-012d: Ближний круг — граничные случаи и стресс-тесты ✅
 
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
@@ -16,9 +18,18 @@
 
 ---
 
----
-
 ## ✅ Выполнено (02.05.2026)
+
+### T-PRIVATE-012e+f: Безопасность + изоляция + мобильный UX ✅
+**25/25 ✓ — уязвимостей не обнаружено** — `test_security.js` (Playwright + API)
+
+**Изоляция (5/5):** user1 не видит threads/анализы/мед.карту user2 · get_analyses строго по user_id · тексты user1 не утекают в threads user2 *(user_id умышленно скрыт из ответа get_my_threads — не уязвимость)*
+
+**Попытки взлома (5/5):** user_id injection в body → игнорируется, записывается от токена · save_health_profile с чужим user_id → к своей карте · toggle чужой рекомендации → без эффекта · SQL-инъекция `'; DROP TABLE users; --` → хранится как plain text, таблица цела · XSS `<script>alert()...</script>` → экранируется `esc()`, alert не сработал, тег не в DOM
+
+**Права доступа (7/7):** user2 → admin.html «Нет доступа: Forbidden» · user2 → private-admin 403 · extend_access 403 · add_recommendation 403 · неверная подпись → 401 · несуществующий uid=99999 → hasAccess=false · токен 31+ день → 401
+
+**Мобильный UX (8/8):** 375px tabsScroll=623 clientWidth=375 overflow=auto · 390px sidebar=none tabs=true · 768px sidebar=block mobileTabs=none · длинное имя 64 chars bodyWidth=390 · длинный текст без overflow · длинное название анализа 390px · bottom sheet top=488 height=356 · десктоп сайдбар подсвечивает активный таб
 
 ### T-PRIVATE-012d: Ближний круг — граничные случаи 25 тестов ✅
 **25/25 ✓** — `test_edge.js` (Playwright, мобильный + десктоп)
