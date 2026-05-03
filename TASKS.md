@@ -9,6 +9,61 @@
 
 ## ⏳ Активные задачи
 
+### T-HOMESCREEN-V4: Умная лента + ротация отзывов ✅
+**Приоритет:** 🔴 | **Статус:** Выполнено (commit e1b3612)
+**Среда:** только dev
+
+---
+
+1. РОТАЦИЯ ОТЗЫВОВ
+   Использовать уже существующий _homeSessionOffset(key, len) —
+   применить к блоку отзывов так же как к гайдам и подборкам.
+   Каждая новая сессия — другая пара отзывов.
+
+---
+
+2. УМНАЯ ЛЕНТА (после всех блоков главной)
+
+Добавить в Edge Function user-data новый action: get_feed
+Параметры: topic (string), cursor (int, last post id), limit (int, default 10)
+Возвращает: массив items [{type, id, title, topic, emoji, image_url, sauce?}]
+
+Логика формирования батча на сервере:
+- Базовый поток: посты по topic, WHERE id < cursor, исключая
+  просмотренные (post_view в analytics_events для user_id),
+  ORDER BY id DESC, LIMIT 10
+- Каждые 6 постов в батче — вставить 1 item типа insert:
+  · Сначала непросмотренные эфиры по теме (ephir_open)
+  · Затем бесплатные гайды по теме (free_guide_open)
+  · Затем Pro гайды — только после того как пользователь
+    получил 5+ постов в этой сессии
+- Соус (sauce) для вставки гайда — выбирать по контексту:
+  · первый показ → 'Хочешь полный протокол?'
+  · повторный показ → 'Возвращаешься к теме — всё в одном месте'
+  · после эфира в ленте → 'В эфире было вкратце — здесь подробно'
+
+На клиенте (index.html):
+- После последнего блока главной — пустой контейнер #homeFeed
+- IntersectionObserver на sentinel-элементе в конце страницы →
+  вызывает loadFeedBatch()
+- loadFeedBatch(): GET user-data?action=get_feed&topic=...&cursor=...
+  рендерит карточки трёх типов:
+  · post: эмодзи темы + заголовок + подтема → openPost(id)
+  · insert efir: обложка + название + длительность → openEfir(id)
+  · insert guide: эмодзи + название + соус + цена/FREE → openGuide(id)
+- После 20 постов: останавливать автоподгрузку,
+  показывать кнопку «Показать ещё»
+- Позицию скролла сохранять в sessionStorage при уходе с главной,
+  восстанавливать при возврате
+
+Аналитика — писать в analytics_events:
+- feed_scroll_start — первый скролл до ленты
+- feed_card_view — {type, id, position, topic}
+- feed_insert_view — {type, id, position, sauce}
+- feed_show_more — клик «Показать ещё»
+
+После реализации: проверить на dev.listoshenkov.ru, отчитаться в TASKS.md.
+
 ### T-HOMESCREEN-V3: Подкасты каруселью + бесконечные карусели ✅
 **Приоритет:** 🔴 | **Статус:** Выполнено (commit 493fe94)
 **Среда:** только dev
@@ -127,6 +182,20 @@
 ---
 
 ## ✅ Выполнено (03.05.2026)
+
+### T-HOMESCREEN-V4: Умная лента + ротация отзывов ✅ (commit e1b3612)
+**Файлы:** `index.html` (dev), user-data edge function (VPS)
+
+**Ротация отзывов**: `_homeSessionOffset('reviews', len)` уже применялась — была нерабочей из-за `.limit(2)` в запросе и `.slice(0,2)` перед вызовом. Фикс в предыдущей сессии уже устранил оба.
+
+**Умная лента:**
+- `get_feed` в edge function `user-data`: cursor-based пагинация, исключает просмотренные через `analytics_events`, работает без session_token.
+- `#homeFeed` контейнер + `#homeFeedSentinel` (1px) после home-blocks.
+- `IntersectionObserver` (rootMargin: 300px) → `loadFeedBatch()`.
+- Батч: 10 постов, лимит 20, потом кнопка «Показать ещё».
+- Вставки каждые 6 постов: сначала эфир по теме → бесплатный гайд → Pro гайд (после 5+ постов). Соус: «Хочешь полный протокол?» / «В эфире было вкратце» / «Возвращаешься к теме».
+- Аналитика: `feed_scroll_start`, `feed_card_view`, `feed_insert_view`, `feed_show_more`.
+- `topicsSlugMap` (id→slug) добавлен для матчинга тем эфиров/гайдов.
 
 ### T-HOMESCREEN-V3: Подкасты + бесконечные карусели ✅ (commit 493fe94)
 **Файлы:** `index.html` (dev branch)
