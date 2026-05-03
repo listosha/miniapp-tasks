@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 03.05.2026 (сессия 2)
+> Обновлено: 03.05.2026 (сессия 3 — мерж в прод)
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -180,6 +180,16 @@
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
 
 ---
+
+## ✅ Выполнено (03.05.2026, сессия 3)
+
+### МЕРЖ dev → main ✅ (commit 489ede9)
+**Среда:** production (app.listoshenkov.ru)
+
+- `git merge dev --no-ff` → конфликт в `index.html` (main имел старую nav-list, dev — новую home-blocks)
+- Резолв: взята dev-версия целиком, `IC_HIDDEN_BK` сохранён
+- `git push origin main` → GitHub Actions `deploy-main.yml` → rsync на `/var/www/app/`
+- Проверка: `https://app.listoshenkov.ru/` → **HTTP 200** ✓, `home-blocks` на проде ✓, `IC_HIDDEN_BK` ✓
 
 ## ✅ Выполнено (03.05.2026, сессия 2)
 
