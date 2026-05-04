@@ -9,6 +9,29 @@
 
 ## ⏳ Активные задачи
 
+### T-PRIVATE-VOICE-TRANSCRIPTION: Транскрипция голосовых сообщений через Whisper
+**Приоритет:** 🟡 | **Статус:** Запланировано | **Среда:** prod
+
+**Что нужно:** после записи голосового — автоматически расшифровывать его в текст и сохранять рядом с аудио.
+
+**Почему Web Speech API не подходит:** работает только в Google Chrome, не работает в Яндекс Браузере, Comet, Safari, Firefox.
+
+**Решение:** Edge Function `transcribe-voice`:
+- Получает storage path голосового файла
+- Скачивает его из `voice-messages` bucket
+- Отправляет в OpenAI Whisper API (`/v1/audio/transcriptions`, model=`whisper-1`, language=`ru`)
+- Возвращает текст → сохраняется в `private_comments.text`
+
+**Стоимость:** ~$0.006/мин = ~₽0.5/мин. Для нескольких голосовых в день — копейки.
+
+**Что нужно для реализации:**
+1. OpenAI API ключ → `OPENAI_API_KEY` в docker-compose.yml
+2. Edge Function `transcribe-voice` (~60 строк TypeScript)
+3. Вызов из фронта: после успешного upload → `api('transcribe_voice', {path, message_id})`
+4. Обновить UI: показывать транскрипт под плеером если есть
+
+---
+
 ### T-PAYMENT-MAX-002: Проактивная догонялка — написать упавшим пользователям
 **Приоритет:** 🟡 | **Статус:** Запланировано | **Среда:** prod
 
