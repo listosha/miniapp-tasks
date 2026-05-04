@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 04.05.2026
+> Обновлено: 04.05.2026 (сессия 2)
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -8,6 +8,53 @@
 ---
 
 ## ⏳ Активные задачи
+
+### T-PAYMENT-MAX-001: Диагностика и фикс конверсии покупок в MAX WebView
+**Приоритет:** 🔴 | **Статус:** В работе | **Среда:** dev (часть сделана, часть ждёт данных)
+
+**Проблема:** 74 purchase_start → 10 paid (13.5%). User 667 (MAX, max_user_id 57928504) пытался 4 раза купить «Гормоны и энергия» (990₽) — 0 оплат. Гайд `gormony-energiya` в целом: 5 starts → 0 paid. Гипотеза: встроенный браузер на китайских телефонах (Xiaomi, Huawei, Realme) ломает Prodamus — не открывается, не проходит редирект, или рендерится некорректно.
+
+**Уже сделано (commit aca1f05, e6168eb, 04.05.2026):**
+- Debounce кнопки «Купить»: 5 секунд блокировки после первого клика, текст «Открываю оплату...»
+- `purchase_start` теперь пишет `platform`, `prodamus_url` (500 символов), `ua` (User-Agent, 250 символов)
+- Новое событие `purchase_redirect_failed`: если через 3 секунды после `openLink` страница не ушла в background (visibilitychange не сработал) — значит браузер не открылся
+- Fallback-баннер: при возврате без оплаты → оранжевая плашка «Не получилось оплатить? Напишите мне» → `t.me/alex_nutrition` (TG) или MAX-профиль
+- Новые события: `purchase_fallback_shown`, `purchase_fallback_clicked`
+
+**Что смотреть через 2–3 дня:**
+```sql
+-- Появляются ли purchase_redirect_failed?
+SELECT event_data->>'platform' AS platform,
+       event_data->>'ua' AS ua,
+       COUNT(*) AS cnt
+FROM analytics_events
+WHERE event_type='purchase_redirect_failed'
+GROUP BY 1,2 ORDER BY cnt DESC;
+
+-- User-Agent у неконвертирующих
+SELECT ae.event_data->>'ua' AS ua,
+       ae.event_data->>'platform' AS platform,
+       COUNT(*) AS starts,
+       COUNT(DISTINCT p.user_id) FILTER (WHERE p.status='paid') AS paid
+FROM analytics_events ae
+LEFT JOIN purchases p ON p.user_id=ae.user_id AND p.status='paid'
+  AND p.paid_at > ae.created_at AND p.paid_at < ae.created_at + INTERVAL '1 hour'
+WHERE ae.event_type='purchase_start'
+  AND ae.created_at > NOW()-INTERVAL '7 days'
+GROUP BY 1,2 ORDER BY starts DESC;
+```
+
+**Гипотезы (от наиболее вероятной):**
+1. Встроенный браузер телефона не открывает Prodamus — `purchase_redirect_failed` это подтвердит
+2. Prodamus открывается, но сломан на конкретном браузере (старый WebView, MIUI Browser и т.д.)
+3. Способ оплаты недоступен (нет СБП, нет нужного банка)
+4. Prodamus открывается нормально — просто люди передумали
+
+**Следующий шаг (когда будут данные):**
+- Если `purchase_redirect_failed` есть → `Platform.openLink` не работает для Prodamus в MAX. Тогда: попробовать `window.open(payUrl)` как fallback, или показывать QR-код / инструкцию для ручной оплаты.
+- Если `purchase_redirect_failed` нет → браузер открывается, ломается внутри. Тогда: попросить пользователей скриншот, или добавить urlReturn с параметром `?payment_status=failed` для диагностики.
+
+---
 
 ### T-ANALYTICS-BANNER-VERIFY: Проверить welcome_banner_personalized_shown в аналитике
 **Приоритет:** 🟡 | **Статус:** Ожидает данных | **Среда:** dev (уже в prod после мержа)
