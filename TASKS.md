@@ -14,12 +14,17 @@
 
 **Проблема:** 74 purchase_start → 10 paid (13.5%). User 667 (MAX, max_user_id 57928504) пытался 4 раза купить «Гормоны и энергия» (990₽) — 0 оплат. Гайд `gormony-energiya` в целом: 5 starts → 0 paid. Гипотеза: встроенный браузер на китайских телефонах (Xiaomi, Huawei, Realme) ломает Prodamus — не открывается, не проходит редирект, или рендерится некорректно.
 
-**Уже сделано (commit aca1f05, e6168eb, 04.05.2026):**
+**Уже сделано (commits aca1f05, e6168eb, 74f1823, 04.05.2026):**
 - Debounce кнопки «Купить»: 5 секунд блокировки после первого клика, текст «Открываю оплату...»
 - `purchase_start` теперь пишет `platform`, `prodamus_url` (500 символов), `ua` (User-Agent, 250 символов)
 - Новое событие `purchase_redirect_failed`: если через 3 секунды после `openLink` страница не ушла в background (visibilitychange не сработал) — значит браузер не открылся
 - Fallback-баннер: при возврате без оплаты → оранжевая плашка «Не получилось оплатить? Напишите мне» → `t.me/alex_nutrition` (TG) или MAX-профиль
 - Новые события: `purchase_fallback_shown`, `purchase_fallback_clicked`
+- Каскад при сбое редиректа: `Platform.openLink` → (3с) → `window.open` → (2с) → модалка с тремя вариантами:
+  - «Оплатить прямо здесь» — `window.location.href=payUrl` (открывает Prodamus в том же WebView; `urlSuccess` вернёт обратно)
+  - «Скопировать ссылку» — clipboard API + textarea-fallback
+  - «Написать Алексею» — контакт по платформе
+- Новые события: `purchase_modal_shown`, `purchase_modal_same_window`, `purchase_modal_copy_link`, `purchase_modal_contact`
 
 **Что смотреть через 2–3 дня:**
 ```sql
