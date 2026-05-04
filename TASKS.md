@@ -9,6 +9,51 @@
 
 ## ⏳ Активные задачи
 
+### T-PAYMENT-MAX-002: Проактивная догонялка — написать упавшим пользователям
+**Приоритет:** 🟡 | **Статус:** Запланировано | **Среда:** prod
+
+**Когда делать:** когда накопится 10+ событий `purchase_redirect_failed` с реальными пользователями.
+
+**Идея:** раз в день (или вручную) находить пользователей, у которых был технический сбой при оплате (браузер не открылся), но так и не купили — и слать им сообщение от бота.
+
+**Сообщение пользователю:**
+> Алексей здесь 👋 Вы недавно смотрели гайд «...», но что-то помешало оплатить. Если нужна помощь — просто ответьте, разберёмся.
+
+**Что нужно сделать:**
+
+1. Миграция: новая таблица `outreach_log (user_id, slug, event_type, channel, sent_at)` — защита от повторных отправок
+2. Edge Function `outreach-payment-fail`:
+   - Берёт пользователей с `purchase_redirect_failed` за последние 7 дней
+   - Исключает тех, кто уже купил (LEFT JOIN purchases)
+   - Исключает тех, кому уже писали (LEFT JOIN outreach_log, окно 7 дней)
+   - Для каждого: telegram_id → Telegram-бот, max_user_id → MAX-бот
+   - Пишет в outreach_log
+   - Ограничение: не более 20 отправок за запуск
+3. Команда `/outreach` в `tg-bot-webhook`:
+   - `/outreach preview` — показывает список кому пойдёт сообщение (без отправки)
+   - `/outreach send` — отправляет и подтверждает сколько ушло
+
+**Запуск — только вручную** через `/outreach send` в Telegram-боте. Cron добавить позже когда убедимся что работает нормально.
+
+**SQL для ручного контроля перед запуском:**
+```sql
+SELECT ae.user_id, u.first_name,
+  ae.event_data->>'platform' AS platform,
+  ae.event_data->>'slug' AS slug,
+  ae.created_at AT TIME ZONE 'Europe/Moscow' AS ts,
+  u.telegram_id, u.max_user_id
+FROM analytics_events ae
+JOIN users u ON u.id = ae.user_id
+LEFT JOIN purchases p ON p.user_id = ae.user_id
+  AND p.prodamus_order LIKE '%' || (ae.event_data->>'slug') || '%'
+  AND p.status = 'paid'
+WHERE ae.event_type = 'purchase_redirect_failed'
+  AND p.id IS NULL
+ORDER BY ae.created_at DESC;
+```
+
+---
+
 ### T-PAYMENT-MAX-001: Диагностика и фикс конверсии покупок в MAX WebView
 **Приоритет:** 🔴 | **Статус:** В работе | **Среда:** dev (часть сделана, часть ждёт данных)
 
