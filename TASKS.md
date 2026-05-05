@@ -30,31 +30,101 @@
 - Размещена на app.listoshenkov.ru/og-image.jpg (66KB, 200 OK)
 - og:image + twitter:image прописаны в index.html
 
-### Блок 2 — Статические страницы гайдов (основной GEO-эффект)
+### Архитектура URL (финальная)
 
-**GEO-2.1 — Генератор статических страниц гайдов**
-- Скрипт: читает `/guides/catalog.json` → генерирует HTML для каждого гайда
-- URL: `listoshenkov.ru/guide/{slug}` (12 страниц)
-- Содержимое: заголовок, описание, оглавление, Schema.org, мета-теги, CTA в приложение
+```
+listoshenkov.ru/                → Главная (об авторе + всё)
+listoshenkov.ru/guide/{slug}   → 12 страниц гайдов Pro
+listoshenkov.ru/free/{slug}    → 9 страниц бесплатных PDF
+listoshenkov.ru/ephir/{slug}   → страницы эфиров
+listoshenkov.ru/podcast/{slug} → страницы подкастов
+listoshenkov.ru/tema/{slug}    → тематические кластеры
+listoshenkov.ru/consultation   → страница консультации
+listoshenkov.ru/sitemap.xml    → sitemap
+```
+
+Цель: попасть в индекс Google и AI-поисковиков (ChatGPT, Perplexity, Claude).
+Каждая страница — витрина: описание + оглавление + CTA в приложение.
+Две кнопки CTA: «Открыть в Telegram» и «Открыть в браузере» (startapp-параметры уточнить у Алексея).
+Сам контент гайдов и протоколы не выкладываем — только описания.
+
+---
+
+### Фазы реализации
+
+**Фаза 1 (следующая сессия):**
+- GEO-2.3 → лендинг на listoshenkov.ru
+- GEO-2.1 → страницы гайдов Pro
+- GEO-2.2 → страницы бесплатных PDF
+- GEO-2.4 → sitemap.xml
+
+**Фаза 2 (следующий спринт):**
+- GEO-2.5 → страницы эфиров
+- GEO-2.6 → страницы подкастов
+- GEO-2.7 → страница консультации
+
+**Фаза 3 (потом):**
+- GEO-3.4 → тематические кластеры
+
+---
+
+### Блок 2 — Статические страницы (Фаза 1)
+
+**GEO-2.1 — Страницы гайдов Pro**
+- Источник: `/guides/catalog.json` (12 гайдов)
+- URL: `listoshenkov.ru/guide/{slug}`
+- Содержимое: title, description, оглавление глав, цена, Schema.org `Product`+`Person`, CTA ×2
+- Schema.org: `Product` (name, description, author, price, offers) + `Person`
 
 **GEO-2.2 — Страницы бесплатных PDF**
-- Аналогично для `/free-guides/catalog.json`
-- URL: `listoshenkov.ru/free/{slug}` (9 страниц)
+- Источник: `/free-guides/catalog.json` (9 PDF)
+- URL: `listoshenkov.ru/free/{slug}`
+- Содержимое: title, short, темы, Schema.org `CreativeWork`+`Person`, CTA ×2
 
-**GEO-2.3 — Лендинг на listoshenkov.ru** *(только для варианта А)*
-- Убрать 301-редирект с listoshenkov.ru → app.listoshenkov.ru
-- Статический лендинг: кто такой Алексей, список гайдов, бесплатные PDF, CTA в приложение
-- Вариант Б (гибрид): корень оставить как редирект, /guide/ и /free/ отдавать статикой
+**GEO-2.3 — Главная страница-лендинг на listoshenkov.ru**
+- Убрать 301-редирект с `listoshenkov.ru` → `app.listoshenkov.ru`
+- Блоки сверху вниз: Hero (фото + имя + позиционирование) → Что это (3 тезиса) → Гайды Pro → Бесплатные PDF → Эфиры (последние 3) → Подкасты (последние 3) → Отзывы → Консультация CTA → Footer
+- Schema.org: `Person` + `WebSite` + `ItemList`
+- После деплоя: обновить инста-ссылку на `app.listoshenkov.ru`
 
 **GEO-2.4 — sitemap.xml**
-- Генерировать из catalog.json: главная + все гайды + все PDF
-- Разместить на listoshenkov.ru/sitemap.xml
+- Состав: главная + все гайды + все PDF + все эфиры + все подкасты + тематические кластеры + /consultation
+- Разместить на `listoshenkov.ru/sitemap.xml`
+- Обновить robots.txt — вписать финальный URL sitemap
+
+### Блок 2 — Статические страницы (Фаза 2)
+
+**GEO-2.5 — Страницы эфиров**
+- URL: `listoshenkov.ru/ephir/{slug}`
+- Источник: Supabase (таблица content, type='efiry')
+- Содержимое: название, дата, описание темы, обложка, ссылка на видео, CTA ×2
+- Schema.org: `VideoObject`
+
+**GEO-2.6 — Страницы подкастов**
+- URL: `listoshenkov.ru/podcast/{slug}`
+- Источник: Supabase (таблица content, type='podcast')
+- Содержимое: название, описание, темы, плеер или ссылка, CTA ×2
+- Schema.org: `PodcastEpisode`
+
+**GEO-2.7 — Страница консультации**
+- URL: `listoshenkov.ru/consultation`
+- Содержимое: что входит, для кого, как проходит, CTA записаться
+- Ключевые запросы: «нутрициолог онлайн», «разбор анализов нутрициолог»
+- Schema.org: `Service` + `Person`
 
 ### Блок 3 — Schema.org (в рамках блока 2)
 
-**GEO-3.1** — `Product` + `Person` на страницах гайдов (name, description, author, price)
+**GEO-3.1** — `Product` + `Person` на страницах гайдов (name, description, author, price, offers)
 **GEO-3.2** — `Person` + `WebSite` + `ItemList` на главной
 **GEO-3.3** — FAQ Schema (3-5 вопросов на гайд) → прямой путь в AI-ответы
+
+### Блок 3 — Тематические кластеры (Фаза 3)
+
+**GEO-3.4 — Тематические кластеры** ⚡ *Самый мощный GEO-инструмент*
+- URL: `listoshenkov.ru/tema/{slug}`
+- Темы: zhelezo, gormony, schitovidka, kishechnik, son, stress, ves, immunitet
+- Каждая страница: экспертный текст 500-800 слов + лучшие посты + релевантный гайд + PDF + эфиры по теме
+- Определяет экспертность автора по теме для AI-поисковиков
 
 ### Блок 4 — Внешний авторитет (фоново)
 
