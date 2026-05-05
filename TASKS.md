@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 04.05.2026 (сессия 2)
+> Обновлено: 05.05.2026
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -345,6 +345,45 @@ GROUP BY 1,2 ORDER BY starts DESC;
 
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
+
+---
+
+## ✅ Выполнено (05.05.2026)
+
+### auto-publish: снижена частота крона ✅ (commit c0fe05d → main)
+Частота запуска `auto-publish.yml` снижена с `*/5` до `*/15` минут — экономия ~3× минут GitHub Actions. Причина: воркфлоу падал с «All jobs were cancelled» из-за сбоя инфраструктуры GitHub (Internal server error на стороне GitHub, не наш код).
+
+### T-PRIVATE-CHAT-UX: Фиксы чата Ближнего круга ✅ (commit d352f97 + 80805d4 → dev)
+**Файл:** `private/index.html`
+
+Четыре UX-фикса:
+
+1. **Длительность голосовых** — `timeupdate` теперь показывает обратный отсчёт (`duration − currentTime`) вместо `currentTime`. Во время воспроизведения видно сколько осталось.
+
+2. **Текст в пузырях** — `font-size: 15px → 16px` в `.chat-bubble`.
+
+3. **Текст в поле ввода** — `font-size: 15px → 16px` в `.chat-textarea`. Побочный эффект: убирает авто-зум iOS Safari при фокусе на инпут.
+
+4. **Клавиатура перекрывала поле ввода (iOS)** — добавлен `visualViewport.resize` listener: при открытии клавиатуры `#icApp` сжимается до `visualViewport.height`, `window.scrollTo(0,0)` сбрасывает авто-скролл iOS, `.chat-messages` прокручивается к низу. Проверено на iPhone 14, Яндекс Браузер.
+
+### T-PRIVATE-NOTIFICATIONS: Уведомления через MAX и email ✅ (commit 79ca05b + 2964921 → dev, задеплоено на VPS)
+**Файл:** `supabase/functions/private-admin/index.ts`
+
+До этого уведомления работали только через Telegram. Добавлены два новых канала:
+
+- **`notifyMax(maxUserId, text)`** — отправка через MAX Bot API (`platform-api.max.ru/messages?user_id=...`), использует `MAX_BOT_TOKEN`
+- **`notifyEmail(email, subject, html)`** — отправка через Resend API (тот же ключ и домен что для OTP-кодов), от `Listoshenkov.RU <noreply@listoshenkov.ru>`
+- **`notifyUser(u, ...)`** — вспомогательная функция: вызывает все три канала параллельно через `Promise.allSettled`
+
+Обновлены 4 action-а (уведомляют по всем доступным полям пользователя):
+- `reply_thread` — ответ в чате
+- `add_recommendation` — новые рекомендации
+- `extend_access` — продление доступа
+- `send_expiry_notifications` — напоминание об истечении (также добавлены `max_user_id, email` в SELECT)
+
+Ежедневная сводка (`send_daily_summary`) уведомляет только администратора — оставлена только TG.
+
+**Проверено:** email-уведомление пришло на `listosha@yandex.ru` после тестового ответа в чате.
 
 ---
 
