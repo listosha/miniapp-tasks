@@ -11,7 +11,21 @@
 
 ## GEO-оптимизация listoshenkov.ru — план задач
 
-> Алексей Листошенков, нутрициолог, Москва
+### GEO-2.3 + GEO-2.1 + GEO-2.2 + GEO-2.4 — Деплой лендинга listoshenkov.ru ✅ (06.05.2026)
+
+**Статус:** ✅ Задеплоено  
+**Исполнитель:** CC
+
+- GEO-2.3 ✅ — главная listoshenkov.ru/ → лендинг (редирект на app убран)
+- GEO-2.1 ✅ — страницы гайдов (12 шт.) на `/guide/{slug}` → 200 OK
+- GEO-2.2 ✅ — страницы бесплатных PDF (9 шт.) на `/free/{slug}` → 200 OK
+- GEO-2.4 ✅ — sitemap.xml и robots.txt → 200 OK
+
+Файлы: `/var/www/landing/` (29 файлов: 22 HTML + sitemap + robots + images + CSS)  
+nginx: `listen 4443 ssl`, `root /var/www/landing`, `try_files $uri $uri/ $uri.html =404`  
+Проверено (6/6): / ✅ · /guide/zhelezodeficit ✅ · /free/fodmap-menu-7-dnej ✅ · /sitemap.xml ✅ · /robots.txt ✅ · /max ✅
+
+> Алексей делает сам: обновить инста-ссылку на `app.listoshenkov.ru`
 
 ### Блок 1 — Быстрые правки ✅ (выполнено 06.05.2026)
 
