@@ -9,6 +9,156 @@
 
 ## ⏳ Активные задачи
 
+### GEO-2.8 — Prerendering для app.listoshenkov.ru ✅ (06.05.2026)
+
+**Статус:** ✅ Задеплоено
+
+---
+
+**Шаг 1. Установить puppeteer (если нет)**
+
+```bash
+cd /var/www
+npm init -y
+npm install puppeteer
+```
+
+---
+
+**Шаг 2. Создать скрипт генерации снимков**
+
+Создать `/var/www/prerender/generate.js`:
+
+```javascript
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+
+const BASE_URL = 'https://app.listoshenkov.ru';
+const OUT_DIR = '/var/www/prerender/cache';
+
+const PAGES = [
+  { url: '/', file: 'index.html' },
+  { url: '/?section=guide_zhelezodeficit', file: 'guide_zhelezodeficit.html' },
+  { url: '/?section=guide_kishechnik', file: 'guide_kishechnik.html' },
+  { url: '/?section=guide_schitovidnaya', file: 'guide_schitovidnaya.html' },
+  { url: '/?section=guide_gormony-i-energiya', file: 'guide_gormony-i-energiya.html' },
+  { url: '/?section=guide_son', file: 'guide_son.html' },
+  { url: '/?section=guide_vitaminy-i-mineraly', file: 'guide_vitaminy-i-mineraly.html' },
+];
+
+async function render() {
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+
+  for (const page of PAGES) {
+    const p = await browser.newPage();
+    await p.goto(BASE_URL + page.url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await p.waitForTimeout(2000); // дать JS отрисоваться
+    const html = await p.content();
+    fs.writeFileSync(path.join(OUT_DIR, page.file), html);
+    console.log('Done:', page.file);
+    await p.close();
+  }
+
+  await browser.close();
+  console.log('All pages rendered.');
+}
+
+render().catch(console.error);
+```
+
+---
+
+**Шаг 3. Запустить первый раз**
+
+```bash
+node /var/www/prerender/generate.js
+```
+
+Проверить что файлы появились:
+```bash
+ls -lh /var/www/prerender/cache/
+```
+
+---
+
+**Шаг 4. Настроить nginx**
+
+В конфиге `app.listoshenkov.ru` добавить перед основным `location /`:
+
+```nginx
+# Список ботов
+map $http_user_agent $is_bot {
+  default 0;
+  ~*(googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora|pinterest|vkshare|w3c_validator|redditbot|applebot|whatsapp|flipboard|tumblr|bitlybot|skypeuripreview|nuzzel|discordbot|google|qwantify|pinterestbot|sogou|bing|bitrix|semrushbot|ahrefsbot|mj12bot|amazonbot|perplexitybot|claudebot|gptbot|anthropic) 1;
+}
+
+server {
+  # ... существующий конфиг ...
+
+  location / {
+    if ($is_bot = 1) {
+      set $prerender_file '';
+
+      # Главная
+      if ($request_uri = '/') { set $prerender_file 'index.html'; }
+
+      # Гайды по section параметру
+      if ($arg_section = 'guide_zhelezodeficit') { set $prerender_file 'guide_zhelezodeficit.html'; }
+      if ($arg_section = 'guide_kishechnik') { set $prerender_file 'guide_kishechnik.html'; }
+      if ($arg_section = 'guide_schitovidnaya') { set $prerender_file 'guide_schitovidnaya.html'; }
+      if ($arg_section = 'guide_gormony-i-energiya') { set $prerender_file 'guide_gormony-i-energiya.html'; }
+      if ($arg_section = 'guide_son') { set $prerender_file 'guide_son.html'; }
+      if ($arg_section = 'guide_vitaminy-i-mineraly') { set $prerender_file 'guide_vitaminy-i-mineraly.html'; }
+
+      if ($prerender_file != '') {
+        root /var/www/prerender/cache;
+        try_files /$prerender_file =404;
+        break;
+      }
+    }
+
+    # Обычные пользователи - SPA как раньше
+    try_files $uri $uri/ /index.html;
+  }
+}
+```
+
+Перезагрузить nginx:
+```bash
+nginx -t && systemctl reload nginx
+```
+
+---
+
+**Шаг 5. Проверка**
+
+```bash
+# Человек - должен вернуть SPA (Content-Type: text/html, без контента гайда)
+curl -s -A "Mozilla/5.0" "https://app.listoshenkov.ru/" | grep -c "Навигатор"
+
+# Бот - должен вернуть snимок с контентом
+curl -s -A "Googlebot/2.1" "https://app.listoshenkov.ru/?section=guide_zhelezodeficit" | grep -c "Железодефицит"
+```
+
+---
+
+**Шаг 6. Cron для обновления снимков**
+
+```bash
+# Обновлять снимки каждую ночь в 3:00
+crontab -e
+0 3 * * * node /var/www/prerender/generate.js >> /var/log/prerender.log 2>&1
+```
+
+---
+
+**Отчитаться:**
+- Список созданных файлов в `/var/www/prerender/cache/`
+- Результат проверки curl для бота и человека
+- Статус nginx reload
+
 Сейчас подготовлю обновлённый план для CC под копипаст.
 
 ---
@@ -56,9 +206,9 @@ GEO-2.4 sitemap.xml ✅
 - Кнопка «🔍 Консультация» добавлена в hero лендинга
 - В sitemap с priority 0.9
 
-**GEO-2.8 — Prerendering для app.listoshenkov.ru**
-- Статус: 🔲 Запланировано
-- nginx смотрит на User-Agent: боты получают HTML-снимок, люди — SPA
+**GEO-2.8 — Prerendering для app.listoshenkov.ru ✅ (06.05.2026)**
+- puppeteer + 7 снимков в `/var/www/prerender/cache/`
+- nginx: боты → prerender, люди → SPA; cron в 3:00 ночи
 
 ---
 
