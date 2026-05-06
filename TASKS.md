@@ -9,6 +9,116 @@
 
 ## ⏳ Активные задачи
 
+Сейчас подготовлю обновлённый план для CC под копипаст.
+
+---
+
+```markdown
+### GEO — Обновлённый план задач (06.05.2026)
+
+---
+
+#### Блок 1 — Быстрые правки ✅ (выполнено 06.05.2026)
+GEO-1.1 Мета-теги ✅ (commit d286a6e)
+GEO-1.2 robots.txt ✅ (commit d286a6e)
+GEO-1.3 OG-картинка ✅ (commit 28ae3a3)
+GEO-ROBOTS AI-краулеры (GPTBot, ClaudeBot, PerplexityBot) ✅
+GEO-GSC Google Search Console ✅
+GEO-YANDEX Яндекс Вебмастер ✅
+
+---
+
+#### Фаза 1 ✅ (выполнено 06.05.2026)
+GEO-2.1 Страницы гайдов Pro (12 шт) ✅
+GEO-2.2 Страницы бесплатных PDF (9 шт) ✅
+GEO-2.3 Лендинг на listoshenkov.ru ✅
+GEO-2.4 sitemap.xml ✅
+
+---
+
+#### Фаза 2 — Эфиры, подкасты, консультация
+
+**GEO-2.5 — Страницы эфиров (20 шт)**
+- Статус: 🔲 Ждём CD (ТЗ готово: TZ-ephirs-podcasts.md)
+- URL: listoshenkov.ru/ephir/efiry-{N}.html
+- Каталог: listoshenkov.ru/ephirs.html
+- Schema.org: VideoObject
+
+**GEO-2.6 — Страницы подкастов (6 шт)**
+- Статус: 🔲 Ждём CD (ТЗ готово: TZ-ephirs-podcasts.md)
+- URL: listoshenkov.ru/podcast/{slug}.html
+- Каталог: listoshenkov.ru/podcasts.html
+- Schema.org: PodcastEpisode
+
+**GEO-2.7 — Страница консультации**
+- Статус: 🔲 В работе (без CD)
+- URL: listoshenkov.ru/consultation.html
+- Schema.org: Service + Person
+
+**GEO-2.8 — Prerendering для app.listoshenkov.ru**
+- Статус: 🔲 Запланировано
+- nginx смотрит на User-Agent: боты получают HTML-снимок, люди — SPA
+
+---
+
+#### Фаза 3 — Тематические кластеры ⚡ Самый мощный GEO-инструмент
+
+**Архитектура:** listoshenkov.ru/tema/{slug}
+**Что на каждой странице:** экспертный текст 500-800 слов + связанные гайды + PDF + эфиры + подкасты по теме + CTA
+**Тексты:** пишет Claude.ai, деплоит CC, дизайн — CD по готовым текстам
+
+**Фаза 3А — Топ-6 (делаем сейчас, тексты в работе):**
+
+| # | Slug | Тема | Постов | Контент |
+|---|------|------|--------|---------|
+| 1 | zhkt | ЖКТ и пищеварение | 247 | 5 эфиров, 2 подкаста, 1 гайд, 2 PDF | ✅ задеплоено 06.05.2026 |
+| 2 | schitovidka | Щитовидная железа | 162 | 6 эфиров, 1 гайд, 1 PDF |
+| 3 | gormony | Гормоны | 83 | 2 эфира, 1 гайд, 1 PDF |
+| 4 | immunitet | Иммунитет | 66 | 2 эфира, 1 подкаст, 1 гайд |
+| 5 | zhelezo | Железо и анемия | 38 | 2 эфира, 1 гайд, 1 PDF |
+| 6 | analizy | Анализы и диагностика | 43 | 3 эфира, 1 подкаст, 1 гайд |
+
+**Фаза 3Б — Следующие 4 (потом):**
+
+| # | Slug | Тема | Постов |
+|---|------|------|--------|
+| 7 | ves | Вес и метаболизм | 33 |
+| 8 | vitamin-d | Витамин D и кальций | 32 |
+| 9 | stress | Стресс и надпочечники | 19 |
+| 10 | magnij | Магний | 11 |
+
+---
+
+#### Блок 4 — Внешний авторитет (фоново)
+GEO-4.1 Единообразное упоминание «Алексей Листошенков, нутрициолог, Москва» везде
+GEO-4.2 Ссылки на страницы гайдов из постов Telegram-канала (когда страницы появятся)
+
+---
+
+#### Архитектура URL (финальная)
+```
+listoshenkov.ru/                    → Главная
+listoshenkov.ru/guide/{slug}        → 12 гайдов Pro
+listoshenkov.ru/free/{slug}         → 9 PDF
+listoshenkov.ru/ephir/efiry-{N}     → 20 эфиров
+listoshenkov.ru/ephirs.html         → каталог эфиров
+listoshenkov.ru/podcast/{slug}      → 6 подкастов
+listoshenkov.ru/podcasts.html       → каталог подкастов
+listoshenkov.ru/consultation.html   → консультация
+listoshenkov.ru/tema/{slug}         → тематические кластеры
+listoshenkov.ru/sitemap.xml         → sitemap
+```
+
+#### Deep link паттерны
+```
+guide_{slug}       → гайды Pro
+freeguide_{slug}   → бесплатные PDF
+ephir_{N}          → эфиры (N = число)
+podcast_{slug}     → подкасты
+consultation       → консультация
+```
+```
+
 ### GEO-DEEPLINKS — Форматы deep link для эфиров и подкастов ✅ (06.05.2026)
 
 **Статус:** ✅ Уточнено
