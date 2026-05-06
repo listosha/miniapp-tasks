@@ -9,6 +9,22 @@
 
 ## ⏳ Активные задачи
 
+### GEO-DEEPLINKS — Форматы deep link для эфиров и подкастов ✅ (06.05.2026)
+
+**Статус:** ✅ Уточнено
+
+| Тип | Параметр | Пример |
+|-----|----------|--------|
+| Эфир | `ephir_{число}` | `ephir_1` |
+| Подкаст | `podcast_{slug}` | `podcast_statiny-dlitelnyj-priem` |
+| Гайд Pro | `guide_{slug}` | `guide_zhelezodeficit` |
+| Бесплатный PDF | `freeguide_{slug}` | `freeguide_fodmap-menu-7-dnej` |
+| Пост | `post_{число}` | `post_123` |
+
+Платформы: `t.me/listoshenkov_nav_bot/app?startapp={param}` · `max.ru/id771509062005_bot?startapp={param}` · `app.listoshenkov.ru/?section={param}`
+
+---
+
 ### GEO-YANDEX — Подключить Яндекс Вебмастер ✅ (06.05.2026)
 
 **Статус:** ✅ Выполнено  
