@@ -9,6 +9,15 @@
 
 ## ⏳ Активные задачи
 
+### GEO-GSC — Подключить Google Search Console ✅ (06.05.2026)
+
+**Статус:** ✅ Выполнено  
+- Домен `listoshenkov.ru` подтверждён через HTML-файл (`googlea9304201ce210039.html`)
+- Sitemap добавить вручную в GSC: «Файлы Sitemap» → `https://listoshenkov.ru/sitemap.xml`
+- `/ping` Google упразднил в 2023 — не требуется
+
+---
+
 ## GEO-оптимизация listoshenkov.ru — план задач
 
 ### GEO-2.3 + GEO-2.1 + GEO-2.2 + GEO-2.4 — Деплой лендинга listoshenkov.ru ✅ (06.05.2026)
