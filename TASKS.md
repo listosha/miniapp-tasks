@@ -50,10 +50,11 @@ GEO-2.4 sitemap.xml ✅
 - Каталог: listoshenkov.ru/podcasts.html
 - Schema.org: PodcastEpisode
 
-**GEO-2.7 — Страница консультации**
-- Статус: 🔲 В работе (без CD)
-- URL: listoshenkov.ru/consultation.html
-- Schema.org: Service + Person
+**GEO-2.7 — Страница консультации ✅ (06.05.2026)**
+- Статус: ✅ Задеплоено
+- URL: `https://listoshenkov.ru/consultation` → 200 OK
+- Кнопка «🔍 Консультация» добавлена в hero лендинга
+- В sitemap с priority 0.9
 
 **GEO-2.8 — Prerendering для app.listoshenkov.ru**
 - Статус: 🔲 Запланировано
