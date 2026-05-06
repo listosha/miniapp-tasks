@@ -13,7 +13,7 @@
 
 **Статус:** ✅ Выполнено  
 - Домен `listoshenkov.ru` подтверждён через HTML-файл (`googlea9304201ce210039.html`)
-- Sitemap добавить вручную в GSC: «Файлы Sitemap» → `https://listoshenkov.ru/sitemap.xml`
+- Sitemap `https://listoshenkov.ru/sitemap.xml` отправлен в GSC ✅
 - `/ping` Google упразднил в 2023 — не требуется
 
 ---
