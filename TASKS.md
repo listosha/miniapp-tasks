@@ -9,6 +9,14 @@
 
 ## ⏳ Активные задачи
 
+### GEO-ROBOTS — Обновить robots.txt для AI-краулеров ✅ (06.05.2026)
+
+**Статус:** ✅ Выполнено  
+- `/var/www/landing/robots.txt` обновлён: GPTBot, ClaudeBot, PerplexityBot, GoogleBot — все Allow: /
+- Проверено: `https://listoshenkov.ru/robots.txt` → 200 OK
+
+---
+
 ### GEO-GSC — Подключить Google Search Console ✅ (06.05.2026)
 
 **Статус:** ✅ Выполнено  
