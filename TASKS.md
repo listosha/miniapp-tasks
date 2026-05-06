@@ -14,7 +14,7 @@
 **Статус:** ✅ Выполнено  
 - `app.listoshenkov.ru` подтверждён первым (Яндекс требует главный домен сначала)
 - `listoshenkov.ru` подтверждён через HTML-файл (`yandex_b6b0f2d6243ef991.html`)
-- Sitemap отправлен через ping + добавить вручную: Индексирование → Sitemap-файлы → `https://listoshenkov.ru/sitemap.xml`
+- Sitemap `https://listoshenkov.ru/sitemap.xml` добавлен вручную в Вебмастере ✅
 
 ---
 
