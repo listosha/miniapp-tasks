@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 04.05.2026 (сессия 2)
+> Обновлено: 06.05.2026
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -8,6 +8,528 @@
 ---
 
 ## ⏳ Активные задачи
+
+## Активные задачи - конверсия (7 мая 2026)
+
+**Контекст:** 7 дней без покупок при растущем трафике и вовлечении. Bounce 14%, медиана 204с, лента работает (91% сессий), отзывы видят (31% guide_view), но purchase_start = 0.
+
+---
+
+### T-CONV-001: Sticky buy bar на странице гайда ✅ (07.05.2026)
+
+**Статус:** ✅ Задеплоено на dev (commit 7183106)
+- Bar скрыт изначально (transform:translateY(100%))
+- Slides in после 100px скролла, скрывается при scrollY < 50
+- Тень box-shadow для визуального выделения
+- Трекинг: guide_sticky_bar_shown {slug}
+
+---
+
+### T-CONV-002: Триальный доступ - первая глава бесплатно ✅ (07.05.2026)
+
+**Статус:** ✅ Задеплоено на dev (commit 54dccb5)
+- Все 12 гайдов Pro: полная глава 1 с реальным образовательным контентом
+- Paywall-блок после главы: «✓ Глава 1 из N открыта», список глав 2–5, кнопка «Получить полный гайд — X ₽»
+- Учитывает game_discount (цена в paywall = цена со скидкой если есть)
+- Трекинг: guide_trial_shown, guide_trial_buy_click
+
+---
+
+### T-CONV-003: Скидка 30% на первую покупку после квиза
+
+**Проблема:** человек прошёл квиз, узнал свою проблему, но не покупает - нет триггера.
+
+**Решение:** через 24 часа после quiz_completed_at, если нет покупок - активировать скидку 30% на гайд по top_topic. Маппинг: iron→zhelezodeficit, hormones→gormony-energiya, weight→blokirovka-vesa, gut→kishechnik, adrenal→stress, thyroid→schitovidka, diagnostics→analizy, sleep→son, immunity→immunitet. Скидка 48 часов. Записать в user_rewards (reward_type='quiz_first_purchase', discount_percent=30). При входе - toast: «Скидка 30% на гайд [название]. Действует 48 часов». Перечёркнутая цена на странице гайда.
+
+**Трекинг:** quiz_discount_shown {slug}, quiz_discount_clicked {slug}
+
+**Статус:** 🔲
+
+---
+
+### T-CONV-004: Выделить карточки гайдов в ленте ✅ (07.05.2026)
+
+**Статус:** ✅ Задеплоено на dev (commit e634845)
+- Карточки в ленте: градиент #fdf6ee→#f5ead8, рамка, бейдж «PRO-гайд», цена + «Подробнее →»
+- Каталог Гайды Pro: цветной фон var(--guide-bg) под каждый гайд, PRO бейдж в углу
+- Главная: тайл «Гайды Pro» в сетке 2×2 — белый фон, тонкая рамка, синий бейдж (#1a3a5c)
+- pro_guide перемещён на 1й слот ленты (появляется после 6 постов, не 30)
+- Бейдж PRO везде: синий #1a3a5c, uppercase, letter-spacing 0.8px
+- Трекинг: feed_guide_click {slug}
+
+---
+
+### T-CONV-005: Игра на лендинге
+
+**Проблема:** лендинг listoshenkov.ru не имеет интерактивного контента, люди уходят.
+
+**Решение:** встроить game_iron на listoshenkov.ru/game. Заголовок «Проверьте свои знания о железе», описание, iframe/встроенная игра. После результата - кнопка «Откройте Навигатор» → app.listoshenkov.ru/?ref=landing_game. SEO: title «Тест: что вы знаете о железодефиците | Листошенков», meta description, h1. Оптимизировать под запросы: тест на железодефицит, квиз железо, проверить анемию.
+
+**Трекинг:** landing_game_started, landing_game_completed {score, tier}, deep_link ref_landing_game
+
+**Статус:** 🔲
+
+---
+
+### T-CONV-006: Социальное доказательство на странице гайда ✅ (08.05.2026)
+
+**Статус:** ✅ Задеплоено на dev (commit b66484f)
+- Все 12 гайдов: мини-кейс с именем и результатом перед отзывами
+- zhelezodeficit (5 покупок): «5 человек уже изучили» + кейс
+- Остальные: только кейс без числа (< 5 покупок)
+- Трекинг: guide_social_proof_shown {slug, count}
+
+---
+
+### ⚠️ T-RLS-UPDATE: Добавить новые event_type в RLS
+
+**После реализации задач** добавить в RLS-политику analytics_events: guide_trial_shown, guide_trial_buy_click, quiz_discount_shown, quiz_discount_clicked, landing_game_started, landing_game_completed, guide_social_proof_shown.
+
+**Уже добавлено (07.05.2026):** guide_sticky_bar_shown, feed_guide_click, feed_scroll_start, feed_card_view, feed_insert_view, feed_show_more, purchase_redirect_failed, purchase_fallback_shown, purchase_fallback_clicked, purchase_modal_shown, purchase_modal_same_window, purchase_modal_copy_link, purchase_modal_contact.
+
+**Статус:** 🔲 (частично)
+
+
+### GEO-2.8 — Prerendering для app.listoshenkov.ru ✅ (06.05.2026)
+
+**Статус:** ✅ Задеплоено
+
+---
+
+**Шаг 1. Установить puppeteer (если нет)**
+
+```bash
+cd /var/www
+npm init -y
+npm install puppeteer
+```
+
+---
+
+**Шаг 2. Создать скрипт генерации снимков**
+
+Создать `/var/www/prerender/generate.js`:
+
+```javascript
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+
+const BASE_URL = 'https://app.listoshenkov.ru';
+const OUT_DIR = '/var/www/prerender/cache';
+
+const PAGES = [
+  { url: '/', file: 'index.html' },
+  { url: '/?section=guide_zhelezodeficit', file: 'guide_zhelezodeficit.html' },
+  { url: '/?section=guide_kishechnik', file: 'guide_kishechnik.html' },
+  { url: '/?section=guide_schitovidnaya', file: 'guide_schitovidnaya.html' },
+  { url: '/?section=guide_gormony-i-energiya', file: 'guide_gormony-i-energiya.html' },
+  { url: '/?section=guide_son', file: 'guide_son.html' },
+  { url: '/?section=guide_vitaminy-i-mineraly', file: 'guide_vitaminy-i-mineraly.html' },
+];
+
+async function render() {
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+
+  for (const page of PAGES) {
+    const p = await browser.newPage();
+    await p.goto(BASE_URL + page.url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await p.waitForTimeout(2000); // дать JS отрисоваться
+    const html = await p.content();
+    fs.writeFileSync(path.join(OUT_DIR, page.file), html);
+    console.log('Done:', page.file);
+    await p.close();
+  }
+
+  await browser.close();
+  console.log('All pages rendered.');
+}
+
+render().catch(console.error);
+```
+
+---
+
+**Шаг 3. Запустить первый раз**
+
+```bash
+node /var/www/prerender/generate.js
+```
+
+Проверить что файлы появились:
+```bash
+ls -lh /var/www/prerender/cache/
+```
+
+---
+
+**Шаг 4. Настроить nginx**
+
+В конфиге `app.listoshenkov.ru` добавить перед основным `location /`:
+
+```nginx
+# Список ботов
+map $http_user_agent $is_bot {
+  default 0;
+  ~*(googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora|pinterest|vkshare|w3c_validator|redditbot|applebot|whatsapp|flipboard|tumblr|bitlybot|skypeuripreview|nuzzel|discordbot|google|qwantify|pinterestbot|sogou|bing|bitrix|semrushbot|ahrefsbot|mj12bot|amazonbot|perplexitybot|claudebot|gptbot|anthropic) 1;
+}
+
+server {
+  # ... существующий конфиг ...
+
+  location / {
+    if ($is_bot = 1) {
+      set $prerender_file '';
+
+      # Главная
+      if ($request_uri = '/') { set $prerender_file 'index.html'; }
+
+      # Гайды по section параметру
+      if ($arg_section = 'guide_zhelezodeficit') { set $prerender_file 'guide_zhelezodeficit.html'; }
+      if ($arg_section = 'guide_kishechnik') { set $prerender_file 'guide_kishechnik.html'; }
+      if ($arg_section = 'guide_schitovidnaya') { set $prerender_file 'guide_schitovidnaya.html'; }
+      if ($arg_section = 'guide_gormony-i-energiya') { set $prerender_file 'guide_gormony-i-energiya.html'; }
+      if ($arg_section = 'guide_son') { set $prerender_file 'guide_son.html'; }
+      if ($arg_section = 'guide_vitaminy-i-mineraly') { set $prerender_file 'guide_vitaminy-i-mineraly.html'; }
+
+      if ($prerender_file != '') {
+        root /var/www/prerender/cache;
+        try_files /$prerender_file =404;
+        break;
+      }
+    }
+
+    # Обычные пользователи - SPA как раньше
+    try_files $uri $uri/ /index.html;
+  }
+}
+```
+
+Перезагрузить nginx:
+```bash
+nginx -t && systemctl reload nginx
+```
+
+---
+
+**Шаг 5. Проверка**
+
+```bash
+# Человек - должен вернуть SPA (Content-Type: text/html, без контента гайда)
+curl -s -A "Mozilla/5.0" "https://app.listoshenkov.ru/" | grep -c "Навигатор"
+
+# Бот - должен вернуть snимок с контентом
+curl -s -A "Googlebot/2.1" "https://app.listoshenkov.ru/?section=guide_zhelezodeficit" | grep -c "Железодефицит"
+```
+
+---
+
+**Шаг 6. Cron для обновления снимков**
+
+```bash
+# Обновлять снимки каждую ночь в 3:00
+crontab -e
+0 3 * * * node /var/www/prerender/generate.js >> /var/log/prerender.log 2>&1
+```
+
+---
+
+**Отчитаться:**
+- Список созданных файлов в `/var/www/prerender/cache/`
+- Результат проверки curl для бота и человека
+- Статус nginx reload
+
+Сейчас подготовлю обновлённый план для CC под копипаст.
+
+---
+
+```markdown
+### GEO — Обновлённый план задач (06.05.2026)
+
+---
+
+#### Блок 1 — Быстрые правки ✅ (выполнено 06.05.2026)
+GEO-1.1 Мета-теги ✅ (commit d286a6e)
+GEO-1.2 robots.txt ✅ (commit d286a6e)
+GEO-1.3 OG-картинка ✅ (commit 28ae3a3)
+GEO-ROBOTS AI-краулеры (GPTBot, ClaudeBot, PerplexityBot) ✅
+GEO-GSC Google Search Console ✅
+GEO-YANDEX Яндекс Вебмастер ✅
+
+---
+
+#### Фаза 1 ✅ (выполнено 06.05.2026)
+GEO-2.1 Страницы гайдов Pro (12 шт) ✅
+GEO-2.2 Страницы бесплатных PDF (9 шт) ✅
+GEO-2.3 Лендинг на listoshenkov.ru ✅
+GEO-2.4 sitemap.xml ✅
+
+---
+
+#### Фаза 2 — Эфиры, подкасты, консультация
+
+**GEO-2.5 — Страницы эфиров (20 шт)**
+- Статус: 🔲 Ждём CD (ТЗ готово: TZ-ephirs-podcasts.md)
+- URL: listoshenkov.ru/ephir/efiry-{N}.html
+- Каталог: listoshenkov.ru/ephirs.html
+- Schema.org: VideoObject
+
+**GEO-2.6 — Страницы подкастов (6 шт)**
+- Статус: 🔲 Ждём CD (ТЗ готово: TZ-ephirs-podcasts.md)
+- URL: listoshenkov.ru/podcast/{slug}.html
+- Каталог: listoshenkov.ru/podcasts.html
+- Schema.org: PodcastEpisode
+
+**GEO-2.7 — Страница консультации ✅ (06.05.2026)**
+- Статус: ✅ Задеплоено
+- URL: `https://listoshenkov.ru/consultation` → 200 OK
+- Кнопка «🔍 Консультация» добавлена в hero лендинга
+- В sitemap с priority 0.9
+
+**GEO-2.8 — Prerendering для app.listoshenkov.ru ✅ (06.05.2026)**
+- puppeteer + 7 снимков в `/var/www/prerender/cache/`
+- nginx: боты → prerender, люди → SPA; cron в 3:00 ночи
+
+---
+
+#### Фаза 3 — Тематические кластеры ✅ ЗАВЕРШЕНА (06.05.2026)
+
+**Каталог тем:** `https://listoshenkov.ru/tema/` → 200 OK ✅
+**Архитектура:** listoshenkov.ru/tema/{slug}
+**Итого задеплоено:** 10 тем + каталог + все кнопки в hero лендинга
+
+**Фаза 3А — Топ-6 (делаем сейчас, тексты в работе):**
+
+| # | Slug | Тема | Постов | Контент |
+|---|------|------|--------|---------|
+| 1 | zhkt | ЖКТ и пищеварение | 247 | 5 эфиров, 2 подкаста, 1 гайд, 2 PDF | ✅ задеплоено 06.05.2026 |
+| 2 | schitovidka | Щитовидная железа | 162 | 6 эфиров, 1 гайд, 1 PDF | ✅ задеплоено 06.05.2026 |
+| 3 | gormony | Гормоны | 83 | 2 эфира, 1 гайд, 1 PDF | ✅ задеплоено 06.05.2026 |
+| 4 | immunitet | Иммунитет | 66 | 2 эфира, 1 подкаст, 1 гайд | ✅ задеплоено 06.05.2026 |
+| 5 | zhelezo | Железо и анемия | 38 | 2 эфира, 1 гайд, 1 PDF | ✅ задеплоено 06.05.2026 |
+| 6 | analizy | Анализы и диагностика | 43 | 3 эфира, 1 подкаст, 1 гайд | ✅ задеплоено 06.05.2026 |
+
+**Фаза 3Б — Следующие 4 (потом):**
+
+| # | Slug | Тема | Постов |
+|---|------|------|--------|
+| 7 | ves | Вес и метаболизм | 33 | ✅ задеплоено 06.05.2026 |
+| 8 | vitamin-d | Витамин D и кальций | 32 | ✅ задеплоено 06.05.2026 (кнопка «Вит D») |
+| 9 | stress | Стресс и надпочечники | 19 | ✅ задеплоено 06.05.2026 (кнопка «Стресс/Сон») |
+| 10 | magnij | Магний | 11 | ✅ задеплоено 06.05.2026 (кнопка «Магний») |
+
+---
+
+#### Блок 4 — Внешний авторитет (фоново)
+GEO-4.1 Единообразное упоминание «Алексей Листошенков, нутрициолог, Москва» везде
+GEO-4.2 Ссылки на страницы гайдов из постов Telegram-канала (когда страницы появятся)
+
+---
+
+#### Архитектура URL (финальная)
+```
+listoshenkov.ru/                    → Главная
+listoshenkov.ru/guide/{slug}        → 12 гайдов Pro
+listoshenkov.ru/free/{slug}         → 9 PDF
+listoshenkov.ru/ephir/efiry-{N}     → 20 эфиров
+listoshenkov.ru/ephirs.html         → каталог эфиров
+listoshenkov.ru/podcast/{slug}      → 6 подкастов
+listoshenkov.ru/podcasts.html       → каталог подкастов
+listoshenkov.ru/consultation.html   → консультация
+listoshenkov.ru/tema/{slug}         → тематические кластеры
+listoshenkov.ru/sitemap.xml         → sitemap
+```
+
+#### Deep link паттерны
+```
+guide_{slug}       → гайды Pro
+freeguide_{slug}   → бесплатные PDF
+ephir_{N}          → эфиры (N = число)
+podcast_{slug}     → подкасты
+consultation       → консультация
+```
+```
+
+### GEO-DEEPLINKS — Форматы deep link для эфиров и подкастов ✅ (06.05.2026)
+
+**Статус:** ✅ Уточнено
+
+| Тип | Параметр | Пример |
+|-----|----------|--------|
+| Эфир | `ephir_{число}` | `ephir_1` |
+| Подкаст | `podcast_{slug}` | `podcast_statiny-dlitelnyj-priem` |
+| Гайд Pro | `guide_{slug}` | `guide_zhelezodeficit` |
+| Бесплатный PDF | `freeguide_{slug}` | `freeguide_fodmap-menu-7-dnej` |
+| Пост | `post_{число}` | `post_123` |
+
+Платформы: `t.me/listoshenkov_nav_bot/app?startapp={param}` · `max.ru/id771509062005_bot?startapp={param}` · `app.listoshenkov.ru/?section={param}`
+
+---
+
+### GEO-YANDEX — Подключить Яндекс Вебмастер ✅ (06.05.2026)
+
+**Статус:** ✅ Выполнено  
+- `app.listoshenkov.ru` подтверждён первым (Яндекс требует главный домен сначала)
+- `listoshenkov.ru` подтверждён через HTML-файл (`yandex_b6b0f2d6243ef991.html`)
+- Sitemap `https://listoshenkov.ru/sitemap.xml` добавлен вручную в Вебмастере ✅
+
+---
+
+### GEO-ROBOTS — Обновить robots.txt для AI-краулеров ✅ (06.05.2026)
+
+**Статус:** ✅ Выполнено  
+- `/var/www/landing/robots.txt` обновлён: GPTBot, ClaudeBot, PerplexityBot, GoogleBot — все Allow: /
+- Проверено: `https://listoshenkov.ru/robots.txt` → 200 OK
+
+---
+
+### GEO-GSC — Подключить Google Search Console ✅ (06.05.2026)
+
+**Статус:** ✅ Выполнено  
+- Домен `listoshenkov.ru` подтверждён через HTML-файл (`googlea9304201ce210039.html`)
+- Sitemap `https://listoshenkov.ru/sitemap.xml` отправлен в GSC ✅
+- `/ping` Google упразднил в 2023 — не требуется
+
+---
+
+## GEO-оптимизация listoshenkov.ru — план задач
+
+### GEO-2.3 + GEO-2.1 + GEO-2.2 + GEO-2.4 — Деплой лендинга listoshenkov.ru ✅ (06.05.2026)
+
+**Статус:** ✅ Задеплоено  
+**Исполнитель:** CC
+
+- GEO-2.3 ✅ — главная listoshenkov.ru/ → лендинг (редирект на app убран)
+- GEO-2.1 ✅ — страницы гайдов (12 шт.) на `/guide/{slug}` → 200 OK
+- GEO-2.2 ✅ — страницы бесплатных PDF (9 шт.) на `/free/{slug}` → 200 OK
+- GEO-2.4 ✅ — sitemap.xml и robots.txt → 200 OK
+
+Файлы: `/var/www/landing/` (29 файлов: 22 HTML + sitemap + robots + images + CSS)  
+nginx: `listen 4443 ssl`, `root /var/www/landing`, `try_files $uri $uri/ $uri.html =404`  
+Проверено (6/6): / ✅ · /guide/zhelezodeficit ✅ · /free/fodmap-menu-7-dnej ✅ · /sitemap.xml ✅ · /robots.txt ✅ · /max ✅
+
+> Алексей делает сам: обновить инста-ссылку на `app.listoshenkov.ru`
+
+### Блок 1 — Быстрые правки ✅ (выполнено 06.05.2026)
+
+**GEO-1.1 — Мета-теги в index.html ✅** (commit d286a6e)
+- title: «Алексей Листошенков | Разбор анализов и протоколы здоровья»
+- meta description, author, canonical, og:type/site_name/locale/url/title/description
+- twitter:card, twitter:title, twitter:description
+
+**GEO-1.2 — robots.txt ✅** (commit d286a6e)
+- Создан на app.listoshenkov.ru/robots.txt (200 OK)
+- Создан на listoshenkov.ru/robots.txt
+- Sitemap указан (добавить URL когда будет готов)
+
+**GEO-1.3 — OG-изображение ✅** (commit 28ae3a3)
+- og-image.jpg 1200×630px, бежевый фон, фото автора, 6 тегов тем
+- Размещена на app.listoshenkov.ru/og-image.jpg (66KB, 200 OK)
+- og:image + twitter:image прописаны в index.html
+
+### Архитектура URL (финальная)
+
+```
+listoshenkov.ru/                → Главная (об авторе + всё)
+listoshenkov.ru/guide/{slug}   → 12 страниц гайдов Pro
+listoshenkov.ru/free/{slug}    → 9 страниц бесплатных PDF
+listoshenkov.ru/ephir/{slug}   → страницы эфиров
+listoshenkov.ru/podcast/{slug} → страницы подкастов
+listoshenkov.ru/tema/{slug}    → тематические кластеры
+listoshenkov.ru/consultation   → страница консультации
+listoshenkov.ru/sitemap.xml    → sitemap
+```
+
+Цель: попасть в индекс Google и AI-поисковиков (ChatGPT, Perplexity, Claude).
+Каждая страница — витрина: описание + оглавление + CTA в приложение.
+Две кнопки CTA: «Открыть в Telegram» и «Открыть в браузере» (startapp-параметры уточнить у Алексея).
+Сам контент гайдов и протоколы не выкладываем — только описания.
+
+---
+
+### Фазы реализации
+
+**Фаза 1 (следующая сессия):**
+- GEO-2.3 → лендинг на listoshenkov.ru
+- GEO-2.1 → страницы гайдов Pro
+- GEO-2.2 → страницы бесплатных PDF
+- GEO-2.4 → sitemap.xml
+
+**Фаза 2 (следующий спринт):**
+- GEO-2.5 → страницы эфиров
+- GEO-2.6 → страницы подкастов
+- GEO-2.7 → страница консультации
+
+**Фаза 3 (потом):**
+- GEO-3.4 → тематические кластеры
+
+---
+
+### Блок 2 — Статические страницы (Фаза 1)
+
+**GEO-2.1 — Страницы гайдов Pro**
+- Источник: `/guides/catalog.json` (12 гайдов)
+- URL: `listoshenkov.ru/guide/{slug}`
+- Содержимое: title, description, оглавление глав, цена, Schema.org `Product`+`Person`, CTA ×2
+- Schema.org: `Product` (name, description, author, price, offers) + `Person`
+
+**GEO-2.2 — Страницы бесплатных PDF**
+- Источник: `/free-guides/catalog.json` (9 PDF)
+- URL: `listoshenkov.ru/free/{slug}`
+- Содержимое: title, short, темы, Schema.org `CreativeWork`+`Person`, CTA ×2
+
+**GEO-2.3 — Главная страница-лендинг на listoshenkov.ru**
+- Убрать 301-редирект с `listoshenkov.ru` → `app.listoshenkov.ru`
+- Блоки сверху вниз: Hero (фото + имя + позиционирование) → Что это (3 тезиса) → Гайды Pro → Бесплатные PDF → Эфиры (последние 3) → Подкасты (последние 3) → Отзывы → Консультация CTA → Footer
+- Schema.org: `Person` + `WebSite` + `ItemList`
+- После деплоя: обновить инста-ссылку на `app.listoshenkov.ru`
+
+**GEO-2.4 — sitemap.xml**
+- Состав: главная + все гайды + все PDF + все эфиры + все подкасты + тематические кластеры + /consultation
+- Разместить на `listoshenkov.ru/sitemap.xml`
+- Обновить robots.txt — вписать финальный URL sitemap
+
+### Блок 2 — Статические страницы (Фаза 2)
+
+**GEO-2.5 — Страницы эфиров**
+- URL: `listoshenkov.ru/ephir/{slug}`
+- Источник: Supabase (таблица content, type='efiry')
+- Содержимое: название, дата, описание темы, обложка, ссылка на видео, CTA ×2
+- Schema.org: `VideoObject`
+
+**GEO-2.6 — Страницы подкастов**
+- URL: `listoshenkov.ru/podcast/{slug}`
+- Источник: Supabase (таблица content, type='podcast')
+- Содержимое: название, описание, темы, плеер или ссылка, CTA ×2
+- Schema.org: `PodcastEpisode`
+
+**GEO-2.7 — Страница консультации**
+- URL: `listoshenkov.ru/consultation`
+- Содержимое: что входит, для кого, как проходит, CTA записаться
+- Ключевые запросы: «нутрициолог онлайн», «разбор анализов нутрициолог»
+- Schema.org: `Service` + `Person`
+
+### Блок 3 — Schema.org (в рамках блока 2)
+
+**GEO-3.1** — `Product` + `Person` на страницах гайдов (name, description, author, price, offers)
+**GEO-3.2** — `Person` + `WebSite` + `ItemList` на главной
+**GEO-3.3** — FAQ Schema (3-5 вопросов на гайд) → прямой путь в AI-ответы
+
+### Блок 3 — Тематические кластеры (Фаза 3)
+
+**GEO-3.4 — Тематические кластеры** ⚡ *Самый мощный GEO-инструмент*
+- URL: `listoshenkov.ru/tema/{slug}`
+- Темы: zhelezo, gormony, schitovidka, kishechnik, son, stress, ves, immunitet
+- Каждая страница: экспертный текст 500-800 слов + лучшие посты + релевантный гайд + PDF + эфиры по теме
+- Определяет экспертность автора по теме для AI-поисковиков
+
+### Блок 4 — Внешний авторитет (фоново)
+
+**GEO-4.1** — единообразное упоминание «Алексей Листошенков, нутрициолог, Москва» везде
+**GEO-4.2** — ссылки на страницы гайдов из постов Telegram-канала (когда страницы появятся)
+
+---
 
 ### T-PRIVATE-VOICE-DURATION: Показывать длительность голосового до воспроизведения
 **Приоритет:** 🟡 | **Статус:** Запланировано | **Среда:** dev
@@ -144,37 +666,7 @@ GROUP BY 1,2 ORDER BY starts DESC;
 
 ---
 
-### T-ANALYTICS-BANNER-VERIFY: Проверить welcome_banner_personalized_shown в аналитике
-**Приоритет:** 🟡 | **Статус:** Ожидает данных | **Среда:** dev (уже в prod после мержа)
-
-Фикс задеплоен в dev (commit eea0cb4, 04.05.2026).
-
-**Что проверить:**
-- Появились ли события `welcome_banner_personalized_shown` в analytics_events
-- Были ли они у пользователей с >7 сессиями (именно они были заблокированы раньше)
-- Убедиться что стандартный `welcome_banner_shown` не пропал
-
-**Контекст:** В оригинальном коде лимит 7 сессий проверялся ДО блока персонализации — пользователи, прошедшие квиз после 7+ сессий, никогда не видели фиолетовый баннер. Фикс: персонализация идёт первой, session gate остался только для стандартного баннера.
-
-**Когда смотреть:** через 1–2 дня после деплоя на prod.
-
----
-
-### T-ANALYTICS-CTA-SCROLL-VERIFY: Проверить post_cta_click и guide_review_shown в аналитике
-**Приоритет:** 🟡 | **Статус:** Ожидает данных | **Среда:** prod
-
-Код в проде, трекинг корректен — события нулевые потому что мало данных (полдня, 79 post_view, 18 guide_view).
-
-**Что проверить:**
-- `post_cta_click` — появились ли клики по CTA-карточке гайда под постом. Если через 3–5 дней всё ещё 0 — карточка, возможно, не рендерится (проверить: открыть пост про железо, должна быть оранжевая карточка гайда под текстом)
-- `guide_review_shown` — появились ли события. Если через 3–5 дней 0 при наличии guide_view — значит никто не долистывает до отзывов (блок глубоко: инфо → оглавление → preview → отзывы)
-- `guide_detail_scroll` — аналогично, трекает дочитывание до конца
-
-**Контекст:** Код живой, баги не найдены. Нулевые значения — поведение пользователей, а не сбой трекинга.
-
-**Когда смотреть:** через 3–5 дней.
-
----
+### T-ANALYTICS-BANNER-VERIFY ✅ | T-ANALYTICS-CTA-SCROLL-VERIFY ✅
 
 ### T-HOMESCREEN-V4: Умная лента + ротация отзывов ✅
 **Приоритет:** 🔴 | **Статус:** Выполнено полностью (последний коммит 0257509)
@@ -345,6 +837,65 @@ GROUP BY 1,2 ORDER BY starts DESC;
 
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
+
+---
+
+## ✅ Выполнено (05.05.2026, сессия 2)
+
+### T-ANALYTICS-CTA-SCROLL-VERIFY: Нулевые события — диагноз и фикс ✅ (commit 0564727 → main)
+**Файл:** `index.html`
+
+**Диагноз и решения по трём проблемам:**
+
+**post_cta_click = 0** — Карточка гайда рендерилась ПОСЛЕ всего текста поста. Пользователи читали и уходили назад, не долистывая до карточки. Фикс: `ctaHtml` перенесён ВЫШЕ `.post-body` — теперь карточка видна сразу при открытии поста, между датой и текстом.
+
+**guide_review_shown = 0** — `IntersectionObserver` на блоке отзывов имел `threshold: 0.5` — событие срабатывало только при 50% видимости блока, что на мобильном при быстром скролле почти никогда. Фикс: `threshold: 0.5 → 0.1`.
+
+**guide_detail_scroll = 0** — `threshold: 1.0` на `height:1px` якоре. 100% видимость 1px-элемента физически невозможна на мобильном из-за subpixel rendering. Фикс: `threshold: 1.0 → 0.2`.
+
+**feed_scroll_start/card_view/insert_view = 0** — Первый батч ленты ждал пока пользователь доскроллит через 6 блоков главной (~1500px). Никто не доскролливал. Фикс: добавлен `_feedFire()` в конец `initHomeFeed()` — первые 10 постов грузятся сразу при открытии главной.
+
+### T-ANALYTICS-BANNER-VERIFY: welcome_banner_personalized_shown — диагноз ✅
+Код фикса (eea0cb4) оказался уже в `main` — задача в описании была ошибочной. Все 11 топиков квиза покрыты в `QUIZ_TOPIC_BANNER`. Нулевые события — статистика: мало пользователей одновременно соответствующих всем 4 условиям (welcome_seen + quiz + топик + не куплен гайд). Код верный, ждём накопления базы.
+
+---
+
+## ✅ Выполнено (05.05.2026)
+
+### auto-publish: снижена частота крона ✅ (commit c0fe05d → main)
+Частота запуска `auto-publish.yml` снижена с `*/5` до `*/15` минут — экономия ~3× минут GitHub Actions. Причина: воркфлоу падал с «All jobs were cancelled» из-за сбоя инфраструктуры GitHub (Internal server error на стороне GitHub, не наш код).
+
+### T-PRIVATE-CHAT-UX: Фиксы чата Ближнего круга ✅ (commit d352f97 + 80805d4 → dev)
+**Файл:** `private/index.html`
+
+Четыре UX-фикса:
+
+1. **Длительность голосовых** — `timeupdate` теперь показывает обратный отсчёт (`duration − currentTime`) вместо `currentTime`. Во время воспроизведения видно сколько осталось.
+
+2. **Текст в пузырях** — `font-size: 15px → 16px` в `.chat-bubble`.
+
+3. **Текст в поле ввода** — `font-size: 15px → 16px` в `.chat-textarea`. Побочный эффект: убирает авто-зум iOS Safari при фокусе на инпут.
+
+4. **Клавиатура перекрывала поле ввода (iOS)** — добавлен `visualViewport.resize` listener: при открытии клавиатуры `#icApp` сжимается до `visualViewport.height`, `window.scrollTo(0,0)` сбрасывает авто-скролл iOS, `.chat-messages` прокручивается к низу. Проверено на iPhone 14, Яндекс Браузер.
+
+### T-PRIVATE-NOTIFICATIONS: Уведомления через MAX и email ✅ (commit 79ca05b + 2964921 → dev, задеплоено на VPS)
+**Файл:** `supabase/functions/private-admin/index.ts`
+
+До этого уведомления работали только через Telegram. Добавлены два новых канала:
+
+- **`notifyMax(maxUserId, text)`** — отправка через MAX Bot API (`platform-api.max.ru/messages?user_id=...`), использует `MAX_BOT_TOKEN`
+- **`notifyEmail(email, subject, html)`** — отправка через Resend API (тот же ключ и домен что для OTP-кодов), от `Listoshenkov.RU <noreply@listoshenkov.ru>`
+- **`notifyUser(u, ...)`** — вспомогательная функция: вызывает все три канала параллельно через `Promise.allSettled`
+
+Обновлены 4 action-а (уведомляют по всем доступным полям пользователя):
+- `reply_thread` — ответ в чате
+- `add_recommendation` — новые рекомендации
+- `extend_access` — продление доступа
+- `send_expiry_notifications` — напоминание об истечении (также добавлены `max_user_id, email` в SELECT)
+
+Ежедневная сводка (`send_daily_summary`) уведомляет только администратора — оставлена только TG.
+
+**Проверено:** email-уведомление пришло на `listosha@yandex.ru` после тестового ответа в чате.
 
 ---
 
