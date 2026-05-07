@@ -83,11 +83,11 @@
 
 ---
 
-### ⚠️ T-RLS-UPDATE: Добавить новые event_type в RLS
+### ⚠️ T-RLS-UPDATE: Добавить новые event_type в RLS ✅ (частично, 08.05.2026)
 
-**После реализации задач** добавить в RLS-политику analytics_events: guide_trial_shown, guide_trial_buy_click, quiz_discount_shown, quiz_discount_clicked, landing_game_started, landing_game_completed, guide_social_proof_shown.
+**Ещё не добавлено:** quiz_discount_shown, quiz_discount_clicked, landing_game_started, landing_game_completed.
 
-**Уже добавлено (07.05.2026):** guide_sticky_bar_shown, feed_guide_click, feed_scroll_start, feed_card_view, feed_insert_view, feed_show_more, purchase_redirect_failed, purchase_fallback_shown, purchase_fallback_clicked, purchase_modal_shown, purchase_modal_same_window, purchase_modal_copy_link, purchase_modal_contact.
+**Уже добавлено:** guide_sticky_bar_shown, feed_guide_click, feed_scroll_start, feed_card_view, feed_insert_view, feed_show_more, purchase_redirect_failed, purchase_fallback_shown, purchase_fallback_clicked, purchase_modal_shown, purchase_modal_same_window, purchase_modal_copy_link, purchase_modal_contact, guide_trial_shown, guide_trial_buy_click, guide_social_proof_shown.
 
 **Статус:** 🔲 (частично)
 
@@ -839,6 +839,20 @@ GROUP BY 1,2 ORDER BY starts DESC;
 
 ### T-QUIZ-PROMPTS: Квиз-промпты — доработка по аналитике путей
 **Приоритет:** 🟡 | **Статус:** На паузе (ждём данные за несколько дней)
+
+---
+
+## ✅ Выполнено (07–08.05.2026) — конверсионный спринт
+
+**Задеплоено на main (commit e830a44):**
+
+- **T-CONV-001**: sticky buy bar — появляется после 100px скролла, скрывается при возврате к началу
+- **T-CONV-002**: первая глава бесплатно для всех 12 гайдов Pro + paywall-блок с CTA
+- **T-CONV-004**: PRO-карточки в ленте — градиент, бейдж, цена, «Подробнее →»; pro_guide на 1й слот ленты
+- **T-CONV-006**: мини-кейс с результатом перед отзывами на каждом гайде
+- **Стилизация**: бейдж PRO (#1a3a5c), цветные карточки в каталоге, тайл на главной
+- **fix**: кнопка «Назад» из гайда возвращала на главную — добавлен navPush
+- **RLS**: добавлены все новые event_type на VPS
 
 ---
 
