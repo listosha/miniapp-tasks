@@ -9,6 +9,89 @@
 
 ## ⏳ Активные задачи
 
+## Активные задачи - конверсия (7 мая 2026)
+
+**Контекст:** 7 дней без покупок при растущем трафике и вовлечении. Bounce 14%, медиана 204с, лента работает (91% сессий), отзывы видят (31% guide_view), но purchase_start = 0.
+
+---
+
+### T-CONV-001: Sticky buy bar на странице гайда ✅ (07.05.2026)
+
+**Статус:** ✅ Задеплоено на dev (commit 7183106)
+- Bar скрыт изначально (transform:translateY(100%))
+- Slides in после 100px скролла, скрывается при scrollY < 50
+- Тень box-shadow для визуального выделения
+- Трекинг: guide_sticky_bar_shown {slug}
+
+---
+
+### T-CONV-002: Триальный доступ - первая глава бесплатно
+
+**Проблема:** человек видит размытый preview и не понимает ценность гайда. Покупка вслепую.
+
+**Решение:** показать полный текст первой главы без оплаты. После неё блок-разделитель: «Вам доступна глава 1 из 8. Остальные 7 глав - [цена]₽» + кнопка «Получить полный гайд». Расширить guideExtras: chapter_1_full + total_chapters. Начать с zhelezodeficit (8 глав, первая - расшифровка анализов). Остальные гайды пока с текущим preview.
+
+**Трекинг:** guide_trial_shown {slug}, guide_trial_buy_click {slug}
+
+**Статус:** 🔲
+
+---
+
+### T-CONV-003: Скидка 30% на первую покупку после квиза
+
+**Проблема:** человек прошёл квиз, узнал свою проблему, но не покупает - нет триггера.
+
+**Решение:** через 24 часа после quiz_completed_at, если нет покупок - активировать скидку 30% на гайд по top_topic. Маппинг: iron→zhelezodeficit, hormones→gormony-energiya, weight→blokirovka-vesa, gut→kishechnik, adrenal→stress, thyroid→schitovidka, diagnostics→analizy, sleep→son, immunity→immunitet. Скидка 48 часов. Записать в user_rewards (reward_type='quiz_first_purchase', discount_percent=30). При входе - toast: «Скидка 30% на гайд [название]. Действует 48 часов». Перечёркнутая цена на странице гайда.
+
+**Трекинг:** quiz_discount_shown {slug}, quiz_discount_clicked {slug}
+
+**Статус:** 🔲
+
+---
+
+### T-CONV-004: Выделить карточки гайдов в ленте ✅ (07.05.2026)
+
+**Статус:** ✅ Задеплоено на dev (commit 7183106)
+- Градиентный фон (#fdf6ee → #f5ead8), оранжевая рамка
+- Бейдж «PRO-гайд» (терракотовый, uppercase)
+- Цена 15px bold + кнопка «Подробнее →» в одну строку
+- Трекинг: feed_guide_click {slug}
+
+---
+
+### T-CONV-005: Игра на лендинге
+
+**Проблема:** лендинг listoshenkov.ru не имеет интерактивного контента, люди уходят.
+
+**Решение:** встроить game_iron на listoshenkov.ru/game. Заголовок «Проверьте свои знания о железе», описание, iframe/встроенная игра. После результата - кнопка «Откройте Навигатор» → app.listoshenkov.ru/?ref=landing_game. SEO: title «Тест: что вы знаете о железодефиците | Листошенков», meta description, h1. Оптимизировать под запросы: тест на железодефицит, квиз железо, проверить анемию.
+
+**Трекинг:** landing_game_started, landing_game_completed {score, tier}, deep_link ref_landing_game
+
+**Статус:** 🔲
+
+---
+
+### T-CONV-006: Социальное доказательство на странице гайда
+
+**Проблема:** нет ощущения что гайд покупают другие люди.
+
+**Решение:** блок «Уже купили» между описанием и отзывами. Данные из purchases (COUNT WHERE product_id=X AND status='paid'). Если < 5 покупок - не показывать число, вместо него кейс. Для zhelezodeficit: «47 человек уже изучили этот гайд» + мини-кейс «Марина, 34: ферритин с 12 до 45 за 8 недель». Кэш localStorage 1 час.
+
+**Трекинг:** guide_social_proof_shown {slug, count}
+
+**Статус:** 🔲
+
+---
+
+### ⚠️ T-RLS-UPDATE: Добавить новые event_type в RLS
+
+**После реализации задач** добавить в RLS-политику analytics_events: guide_trial_shown, guide_trial_buy_click, quiz_discount_shown, quiz_discount_clicked, landing_game_started, landing_game_completed, guide_social_proof_shown.
+
+**Уже добавлено (07.05.2026):** guide_sticky_bar_shown, feed_guide_click, feed_scroll_start, feed_card_view, feed_insert_view, feed_show_more, purchase_redirect_failed, purchase_fallback_shown, purchase_fallback_clicked, purchase_modal_shown, purchase_modal_same_window, purchase_modal_copy_link, purchase_modal_contact.
+
+**Статус:** 🔲 (частично)
+
+
 ### GEO-2.8 — Prerendering для app.listoshenkov.ru ✅ (06.05.2026)
 
 **Статус:** ✅ Задеплоено
