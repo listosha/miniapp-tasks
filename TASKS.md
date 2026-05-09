@@ -203,17 +203,37 @@
 
 ---
 
-### T-CONV-003-ANON: Ловить анонов после квиза без email
+### T-CONV-003-ANON: Ловить анонов после квиза без email ✅ (09.05.2026)
 
-**Проблема:** анон проходит квиз, но не вводит email — остаётся неавторизованным, скидку получить не может.
+**Статус:** ✅ Задеплоено на main (merge commit 0fd8b40)
 
-**Что уже работает:** анон проходит квиз → localStorage сохраняет `quiz_completed`, `quiz_top_topic`, `quiz_result`. При следующем логине (через email/TG/MAX) `upsert-user` синкает в users → `claimQuizReward` создаёт reward.
+**Что сделано:**
+- В `initWelcomeBanner` добавлена ветка перед personalized banner: если `!currentUser && quiz_completed && quiz прошёл ≥24ч назад` → показать «🎁 У тебя есть скидка 30% на гайд по [тема] — войди, чтобы активировать →»
+- Click → `showAuthModal()` → после логина существующий flow (`upsert-user` → `claimQuizReward`) автоматически создаёт reward
+- `initWelcomeBanner` вызывается даже без `welcome_seen` для анона с пройденным квизом
+- Маппинг topic→title из существующего QUIZ_REWARD_TITLES
+- Один раз на сессию (`sessionStorage.aqd_seen`)
+- RLS: добавлены `anon_quiz_discount_banner_shown/clicked` (миграция применена)
 
-**Что добавить:** для тех, кто остаётся анонимным — баннер при возврате в app: «У тебя есть скидка 30% на гайд по [тема] — залогинься, чтобы активировать». Показывать на главной если `localStorage.quiz_completed=true && !currentUser`. Клик → открыть auth modal.
+**Трекинг:** `anon_quiz_discount_banner_shown {slug, topic}`, `anon_quiz_discount_banner_clicked {slug, topic}`
 
-**Трекинг:** anon_quiz_discount_banner_shown, anon_quiz_discount_banner_clicked, anon_quiz_discount_banner_dismissed
+---
 
-**Статус:** 🔲
+### T-DEEPLINK-FAST: Ускорить открытие гайда по deep link ✅ (09.05.2026)
+
+**Статус:** ✅ Задеплоено на main (merge commit 1589c23)
+
+**Проблема:** при переходе на app по deep link `guide_<slug>` (с лендинга, мессенджера, share-ссылки) приложение сначала рендерило главную с персонализацией, и только потом открывало гайд — пользователь видел вспышку главной.
+
+**Что сделано:**
+- Расширена early IIFE — детектит `guide_*`, `freeguide_*`, `post_*` из `?section=`, `?startapp=`, `?goto=` или TG/MAX `start_param`. Сразу показывает `deepLinkOverlay` (белая ширма с «📖 Загрузка...»)
+- В `init()` добавлен fast-path **до** `await loadPostsFromDB()`:
+  - `guide_<slug>` → `loadGuidesIfNeeded` → `openGuideDetail` → скрыть overlay
+  - `freeguide_<slug>` → `openFreePdf` → скрыть overlay
+- Главная всё равно отрисуется в фоне когда posts загрузятся, но скрыта за overlay. Когда юзер нажмёт «Назад» — главная уже готова
+- Дубликаты обработки (`handleDeepLink`, `handleGoto`) пропускаются через флаг `_fastDeepLinkHandled`
+
+**Эффект:** время «click → видимый гайд» сокращается на время загрузки постов (~500ms-2s) и без визуального flash главной. Особенно заметно для трафика с лендинга и мессенджеров.
 
 ---
 
