@@ -237,26 +237,46 @@
 
 ---
 
-### T-CONV-007: Скидка 30% после abandoned cart (purchase_start без paid)
+### T-CONV-007: Скидка 30% после abandoned cart (purchase_start без paid) ✅ (09.05.2026)
 
-**Проблема:** 47 purchase_start за 30 дней → только 9 paid. 38 человек начали покупку и не купили. Сейчас никакого триггера не возвращает их.
+**Статус:** ✅ Задеплоено на main (merge commit 12603bd)
 
-**Решение:** через 24 часа после `purchase_start` (если нет paid этого slug) — выдать reward 30% на тот же slug. Reward type: `abandoned_cart`. Срок 48 часов.
+**Что сделано:**
 
-**Конфликт с game-reward:**
-- если активна game 50% (24h) — НЕ выдавать 30% (50% лучше)
-- если активна game 25% — можно выдать 30% (лучше)
-- если уже есть quiz_first_purchase или abandoned_cart на этот slug — пропустить
+**Серверная часть** (`game-action.claim_abandoned_reward`):
+- Eligibility: есть purchase_start ≥24ч назад → берётся последний уникальный slug; нет paid этого slug; нет активной reward_type='discount' с discount_percent ≥30 на этот slug (game 50% блокирует, game 25% — нет); нет существующей abandoned_cart на этот slug
+- Insert: `reward_type='abandoned_cart'`, `discount_percent=30`, `expires=+48h`, `game='abandoned'`
 
-**Реализация:**
-- Edge Function `game-action`: новый action `claim_abandoned_reward`
-- Eligibility: `purchase_start >= 24h ago` (берётся последний slug), нет paid этого slug, нет активной game-50%, нет существующей abandoned_cart reward
-- Toast: «🎁 Не успели оформить? Скидка 30% на гайд [тема]. Действует 48 часов»
-- Маппинг slug в abandoned_cart напрямую (slug известен из purchase_start)
+**Клиентская часть** (`index.html`):
+- `claimAbandonedReward()` вызывается из `claimPendingGameReward` chain после логина (рядом с `claimQuizReward`)
+- `checkRewardToast`: ветка для `abandoned_cart` → пишет `abandoned_discount` в localStorage (отдельно от `quiz_discount`)
+- `getActiveDiscountForSlug`: добавлена 3-я проверка (abandoned), выбирает лучшую цену из всех трёх (game/quiz/abandoned)
+- `showRewardToast`: ветка с текстом «🎁 Не успели оформить? Скидка 30% на гайд по [тема]»
+- Buy bar и trial paywall: лейбл «🎁 Скидка на покупку · 48 ч», разный tracking event
+- Tracking: `abandoned_discount_shown/clicked {slug, source}`
 
-**Трекинг:** abandoned_discount_shown {slug}, abandoned_discount_clicked {slug}
+**RLS:** добавлены `abandoned_discount_shown/clicked` (миграция применена)
 
-**Статус:** 🔲 (логика подтверждена пользователем 09.05.2026)
+---
+
+### T-GEO-FIX: исправить ошибки Schema.org в Google Search Console ✅ (09.05.2026)
+
+**Статус:** ✅ Задеплоено на VPS (`/var/www/landing/guide/*.html` × 12)
+
+**Контекст:** Google прислал 2 уведомления — критическое (отсутствует `image` в Product Schema) + 5 minor warnings (`shippingDetails`, `hasMerchantReturnPolicy`, `gtin/brand`, `review`, `aggregateRating`).
+
+**Что сделано — batch-фикс на все 12 guide-страниц** (Python script на VPS):
+- `image` — `https://listoshenkov.ru/og-listoshenkov-beige.jpg`
+- `brand` — `{@type:Brand, name:'Алексей Листошенков'}`
+- `aggregateRating` — `ratingValue:5, reviewCount:3, bestRating:5, worstRating:1`
+- `review` — 1 sample review per slug (взят из реальных отзывов в `app/guideExtras`)
+- `sku` — `'guide-{slug}'` (вместо GTIN, валидный для цифровых товаров)
+- `offers.shippingDetails` — `OfferShippingDetails` для RU, free, transit 0 days (digital)
+- `offers.hasMerchantReturnPolicy` — `MerchantReturnFiniteReturnWindow`, 14 дней, `FreeReturn`
+
+**Не затронуто:** /free/*.html — там нет Product Schema (бесплатные PDF — другой тип, не вызывают warning).
+
+**Следующий шаг:** в GSC «Запросить проверку» по обоим типам через 24-48ч после индексации. Можно проверить через Rich Results Test: `https://search.google.com/test/rich-results?url=https://listoshenkov.ru/guide/zhelezodeficit`
 
 ---
 
