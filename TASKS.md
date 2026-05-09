@@ -35,15 +35,30 @@
 
 ---
 
-### T-CONV-003: Скидка 30% на первую покупку после квиза
+### T-CONV-003: Скидка 30% на первую покупку после квиза 🚧 (09.05.2026, на dev)
 
-**Проблема:** человек прошёл квиз, узнал свою проблему, но не покупает - нет триггера.
+**Статус:** 🚧 Задеплоено на dev (commits df5a602, 0ac10aa) — ждёт верификации перед merge в main
 
-**Решение:** через 24 часа после quiz_completed_at, если нет покупок - активировать скидку 30% на гайд по top_topic. Маппинг: iron→zhelezodeficit, hormones→gormony-energiya, weight→blokirovka-vesa, gut→kishechnik, adrenal→stress, thyroid→schitovidka, diagnostics→analizy, sleep→son, immunity→immunitet. Скидка 48 часов. Записать в user_rewards (reward_type='quiz_first_purchase', discount_percent=30). При входе - toast: «Скидка 30% на гайд [название]. Действует 48 часов». Перечёркнутая цена на странице гайда.
+**Что сделано:**
+- Миграция `users.quiz_top_topic text` (применена напрямую на VPS)
+- Edge Function `game-action`: новый action `claim_quiz_reward` с проверками eligibility (24h delay, нет paid purchases, нет существующей quiz reward) и маппингом топиков
+- Edge Function `game-action.my_rewards`: возвращает `reward_type, product_slug`
+- Edge Function `upsert-user`: принимает и синкает `quiz_top_topic`
+- Frontend (`index.html`):
+  - Helper `getActiveDiscountForSlug()` — единая логика game+quiz скидок (выбирает лучшую)
+  - `claimQuizReward()` после логина (вызывается из claimPendingGameReward chain)
+  - `_getQuizTopTopic()` — backfill из quiz_result для старых сессий
+  - Toast различает типы наград: «🎁 Алексей подобрал тебе скидку 30% на гайд по [тема]»
+  - Buy bar и trial paywall: перечёркнутая цена для quiz-скидки + лейбл «🎁 Скидка после квиза · 48 ч»
+  - Tracking: `quiz_discount_shown` / `quiz_discount_clicked` с `source: toast/buy_bar/paywall`
 
-**Трекинг:** quiz_discount_shown {slug}, quiz_discount_clicked {slug}
+**Маппинг top_topic→slug:** iron→zhelezodeficit, hormones→gormony-energiya, weight→blokirovka-vesa, gut→kishechnik, adrenal→stress, thyroid→schitovidka, diagnostics→analizy, sleep→son, immunity→immunitet
 
-**Статус:** 🔲
+**Текст toast:** «🎁 Алексей подобрал тебе скидку 30% на гайд по [тема]. Действует ещё N ч. Откройте гайд, чтобы купить со скидкой.»
+
+**На VPS уже сейчас 34 пользователя проходили квиз 24h+ назад без покупок** — при первом заходе на dev получат reward автоматически (upsert-user backfill quiz_top_topic из localStorage → claim_quiz_reward создаёт reward).
+
+**Трекинг:** quiz_discount_shown {slug, source}, quiz_discount_clicked {slug, source}
 
 ---
 
