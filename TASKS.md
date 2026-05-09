@@ -83,13 +83,18 @@
 
 ---
 
-### ⚠️ T-RLS-UPDATE: Добавить новые event_type в RLS ✅ (частично, 08.05.2026)
+### T-RLS-UPDATE: Добавить новые event_type в RLS ✅ (09.05.2026)
 
-**Ещё не добавлено:** quiz_discount_shown, quiz_discount_clicked, landing_game_started, landing_game_completed.
+**Статус:** ✅ Задеплоено (commit 0a9ab9d на dev, миграция `20260509_quiz_discount_landing_game_rls.sql` применена напрямую к self-hosted Supabase на VPS)
 
-**Уже добавлено:** guide_sticky_bar_shown, feed_guide_click, feed_scroll_start, feed_card_view, feed_insert_view, feed_show_more, purchase_redirect_failed, purchase_fallback_shown, purchase_fallback_clicked, purchase_modal_shown, purchase_modal_same_window, purchase_modal_copy_link, purchase_modal_contact, guide_trial_shown, guide_trial_buy_click, guide_social_proof_shown.
+**Добавлено в политику `Insert only validated events`:**
+- T-CONV-003: `quiz_discount_shown`, `quiz_discount_clicked`
+- T-CONV-005: `landing_game_started`, `landing_game_completed`
+- Бонусом: `welcome_banner_personalized_shown`, `welcome_banner_personalized_clicked`, `post_cta_click` — раньше тихо отбрасывались RLS, теперь корректно записываются
 
-**Статус:** 🔲 (частично)
+**Smoke test:** новые события → HTTP 201, неизвестные → HTTP 401
+
+**Ранее добавленные** (есть в политике): guide_sticky_bar_shown, feed_guide_click, feed_scroll_start, feed_card_view, feed_insert_view, feed_show_more, purchase_redirect_failed, purchase_fallback_shown, purchase_fallback_clicked, purchase_modal_shown, purchase_modal_same_window, purchase_modal_copy_link, purchase_modal_contact, guide_trial_shown, guide_trial_buy_click, guide_social_proof_shown.
 
 
 ### GEO-2.8 — Prerendering для app.listoshenkov.ru ✅ (06.05.2026)
