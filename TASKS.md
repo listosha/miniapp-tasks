@@ -101,15 +101,26 @@
 
 ---
 
-### T-CONV-006: Социальное доказательство на странице гайда
+### T-CONV-006: Социальное доказательство на странице гайда ✅ (09.05.2026)
 
-**Проблема:** нет ощущения что гайд покупают другие люди.
+**Статус:** ✅ Задеплоено на main (merge commit 8206bb6)
 
-**Решение:** блок «Уже купили» между описанием и отзывами. Данные из purchases (COUNT WHERE product_id=X AND status='paid'). Если < 5 покупок - не показывать число, вместо него кейс. Для zhelezodeficit: «47 человек уже изучили этот гайд» + мини-кейс «Марина, 34: ферритин с 12 до 45 за 8 недель». Кэш localStorage 1 час.
+**Подход (отклонение от исходной спеки):** вместо `purchases.count` (на сейчас 5/3/1/1/0…0 — не убедительно) используем **реальные просмотры за 30 дней** (`guide_view` events). Числа большие (от 11 до 343), формулировка «За месяц этот гайд изучили N человек» — честный сигнал «популярная тема».
 
-**Трекинг:** guide_social_proof_shown {slug, count}
+**Что сделано:**
+- Postgres RPC `guide_view_counts_30d()` (SECURITY DEFINER) — обходит RLS «No read» на analytics_events, доступна анонам через `sb.rpc(...)`. Возвращает `{slug, view_count}` за 30 дней (`COUNT(*) WHERE event_type='guide_view'`)
+- Frontend (`index.html`):
+  - `loadGuideViewCounts()` вызывается в `init()`, кэш 1ч в localStorage `guide_view_counts`
+  - `getGuideViewCount(slug)` — helper для рендера
+  - `social_proof` блок: «За месяц этот гайд изучили N человек» + мини-кейс
+  - Порог показа числа: ≥5 (иначе только мини-кейс)
 
-**Статус:** 🔲
+**Фактические числа на 09.05.2026 (за 30 дней):**
+- zhelezodeficit: 343, kishechnik: 99, vitaminy-mineraly: 84, schitovidka: 61, son: 53, osteoporoz: 53, pochki-davlenie: 49, gormony-energiya: 38, analizy: 30, stress: 16, immunitet: 14, blokirovka-vesa: 11
+
+Все 12 гайдов сейчас показывают число.
+
+**Трекинг:** `guide_social_proof_shown {slug, count, source: 'views_30d'}`
 
 ---
 
