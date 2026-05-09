@@ -1,9 +1,96 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 06.05.2026
+> Обновлено: 09.05.2026
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
+
+---
+
+## 🧪 QA-отчёт сессии 09.05.2026
+
+**Статус:** ✅ Все блоки пройдены (8 блоков, 50+ проверок)
+
+**Проверено:**
+
+### Блок A — БД-инфраструктура ✅
+- `users.quiz_top_topic` — колонка создана
+- `user_rewards.product_slug`, `reward_type`, `toast_shown_at` — все колонки на месте
+- RPC `guide_view_counts_30d()` — функция создана, granted to anon, возвращает реальные данные (zhelezodeficit: 346, kishechnik: 99, и т.д. для 12 гайдов)
+- RLS-политика `Insert only validated events` — содержит все 12 новых event_type:
+  - `quiz_discount_shown/clicked`, `landing_game_started/completed`, `purchase_user_returned`, `anon_quiz_discount_banner_shown/clicked`, `abandoned_discount_shown/clicked`, `welcome_banner_landing_game_shown`, `welcome_banner_personalized_shown`, `post_cta_click`
+
+### Блок B — Edge Functions ✅
+- `game-action.claim_reward` → `invalid_session` ✓
+- `game-action.claim_quiz_reward` → `invalid_session` ✓
+- `game-action.claim_abandoned_reward` → `invalid_session` ✓
+- `game-action.my_rewards` → `invalid_session` ✓
+- `game-action.ack_reward_toast` → `invalid_session` ✓
+
+### Блок C — E2E через sandbox-юзера ✅
+Создан тестовый user_id=999999 (QA-Sandbox), прогнаны сценарии:
+- ✅ **Test 1:** `claim_quiz_reward` для eligible user (quiz 25h ago, top_topic=iron) → создал reward 30% на zhelezodeficit, 48h
+- ✅ **Test 2:** повторный вызов → возвращает existing (idempotent)
+- ✅ **Test 3:** `claim_abandoned_reward` без purchase_start → `no_purchase_start`
+- ✅ **Test 4:** добавлен purchase_start kishechnik 25h назад → reward 30% на kishechnik, 48h
+- ✅ **Test 5:** при активной game-50% на zhelezodeficit + purchase_start zhelezodeficit → `better_game_reward_active` (блокировка корректна)
+- ✅ **Test 6:** при game-25% на zhelezodeficit → abandoned 30% проходит (правильное приоритетное поведение)
+- ✅ **Test 7:** `my_rewards` возвращает все 4 reward с правильными `reward_type`, `product_slug`, `discount_percent`
+- ✅ **Test 8:** quiz < 24h ago → `too_early` с `wait_ms`
+
+**Cleanup:** sandbox users + связанные данные удалены полностью.
+
+### Блок D — Frontend integrity ✅
+Все 17 ключевых функций/идентификаторов на live `app.listoshenkov.ru/`:
+- `claimQuizReward`, `claimAbandonedReward`, `_getQuizTopTopic`
+- `getActiveDiscountForSlug`, `cutChapterForTrial`, `getGuideViewCount`
+- RPC call `guide_view_counts_30d`, tracking `anon_quiz_discount_banner_shown`, `welcome_banner_landing_game_shown`, `purchase_user_returned`
+- `_fastDeepLinkHandled`, `nav-row-game`, «Тест на железо»
+- Cross-domain `grw_game/correct/total/earned`, mapping `QUIZ_TOPIC_TO_SLUG/TITLES`
+- localStorage keys `abandoned_discount`, `quiz_discount`
+
+### Блок E — Schema.org (T-GEO-FIX) ✅
+На странице `https://listoshenkov.ru/guide/zhelezodeficit`:
+- ✓ `name`, `image`, `description`, `offers`, `brand`, `aggregateRating`, `review`, `sku`
+- ✓ `offers.shippingDetails`, `offers.hasMerchantReturnPolicy`, `offers.price`, `offers.priceCurrency`
+
+12/12 must-have полей. Все 12 guide-страниц в одинаковом формате.
+
+### Блок F — Cross-domain reward (landing → app) ✅
+- Landing `/game/` `goToApp()` строит URL `app.listoshenkov.ru/?ref=landing_game&grw_game=...&grw_correct=...&grw_total=...&grw_earned=...`
+- App `init()` парсит `grw_*` и пишет `game_reward_pending` в localStorage с `from_landing:true`
+
+### Блок G — Аналитика smoke test ✅
+Все 14 новых event_type принимаются через anon REST API (HTTP 201):
+quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_landing_game_shown/clicked, welcome_banner_personalized_shown/clicked, anon_quiz_discount_banner_shown/clicked, abandoned_discount_shown/clicked, purchase_user_returned, post_cta_click
+
+### Блок H — Live deployment endpoints ✅
+| URL | Status |
+|---|---|
+| `app.listoshenkov.ru/` | 200 |
+| `app.listoshenkov.ru/?ref=landing_game` | 200 (welcome-баннер для T-CONV-005) |
+| `app.listoshenkov.ru/?section=guide_zhelezodeficit` | 200 (T-DEEPLINK-FAST) |
+| `listoshenkov.ru/` | 200 |
+| `listoshenkov.ru/game` | 200 (через 301 на /game/) |
+| `listoshenkov.ru/game/` | 200 |
+| `listoshenkov.ru/guide/zhelezodeficit` | 200 |
+| `listoshenkov.ru/guide/analizy` | 200 |
+| `listoshenkov.ru/sitemap.xml` | 200 |
+| `app.listoshenkov.ru/private/` | **404** ✓ (Private only on dev) |
+| `dev.listoshenkov.ru/private/` | **200** ✓ (доступен на dev) |
+
+**Что НЕ покрыто QA (требует ручной проверки в браузере):**
+- Визуальный рендер toast-ов и баннеров
+- Реальная воронка с покупкой через Prodamus
+- Поведение в TG/MAX webview
+- E2E тест: landing /game → tier 50% → app login → toast → buy
+
+**Рекомендуется через 7-14 дней замерить:**
+- `guide_trial_shown → guide_trial_buy_click` CTR (был 2.3%, цель >5% после T-CONV-008)
+- `purchase_start → purchase_user_returned → purchase_complete` воронка (T-PAYMENT-TRACK)
+- `quiz_discount_shown → quiz_discount_clicked` (T-CONV-003)
+- `abandoned_discount_shown → abandoned_discount_clicked` (T-CONV-007)
+- Google Search Console — пройти проверку Schema.org (T-GEO-FIX)
 
 ---
 
