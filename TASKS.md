@@ -74,15 +74,30 @@
 
 ---
 
-### T-CONV-005: Игра на лендинге
+### T-CONV-005: Игра на лендинге ✅ (09.05.2026)
 
-**Проблема:** лендинг listoshenkov.ru не имеет интерактивного контента, люди уходят.
+**Статус:** ✅ Задеплоено на main (commit bf117dd) + landing на VPS (`/var/www/landing/game/index.html`)
 
-**Решение:** встроить game_iron на listoshenkov.ru/game. Заголовок «Проверьте свои знания о железе», описание, iframe/встроенная игра. После результата - кнопка «Откройте Навигатор» → app.listoshenkov.ru/?ref=landing_game. SEO: title «Тест: что вы знаете о железодефиците | Листошенков», meta description, h1. Оптимизировать под запросы: тест на железодефицит, квиз железо, проверить анемию.
+**URL:** `https://listoshenkov.ru/game` → 200 OK (через 301 на /game/)
 
-**Трекинг:** landing_game_started, landing_game_completed {score, tier}, deep_link ref_landing_game
+**Что сделано:**
+- Адаптация `games/iron/index.html` → `/var/www/landing/game/index.html`: убраны auth (login/OTP), save_score, leaderboard, Prodamus
+- SEO: title «Тест на железодефицит — что вы знаете о железе? | Алексей Листошенков», meta description под запросы «тест на железодефицит, квиз железо, проверить анемию», canonical, OG-теги
+- h1 «Тест: что вы знаете о железе?»
+- Анонимная аналитика: `landing_game_started`, `landing_game_completed` {score, tier, correct, total, percent, discount}
+- При tier ≥ 75% сохраняем `game_reward_pending` в localStorage с `from_landing: true` → когда пользователь придёт в app и залогинится, существующий `claimPendingGameReward()` подхватит и активирует reward 25/50% на zhelezodeficit
+- CTA «🎯 Открыть Навигатор Алексея» → `https://app.listoshenkov.ru/?ref=landing_game`
 
-**Статус:** 🔲
+**App-side welcome banner:**
+- При `?ref=landing_game` показывается баннер «🎯 Спасибо за прохождение игры! Пройди квиз — подберём материалы под твои задачи →»
+- Если есть `game_reward_pending` from_landing с tier≥75% — текст: «🎯 Спасибо за игру! Скидка ждёт после входа. Пройди квиз →»
+- Клик → открывает квиз (`showQuizOverlay()`)
+- Приоритет над personalized/standard banner. Один раз на сессию (sessionStorage flag)
+- Tracking: `welcome_banner_landing_game_shown/clicked`
+
+**RLS-миграции:** `welcome_banner_landing_game_shown/clicked` (применены), `landing_game_started/completed` (уже были в первой миграции дня)
+
+**Sitemap.xml:** добавлен `https://listoshenkov.ru/game` priority=0.7
 
 ---
 
