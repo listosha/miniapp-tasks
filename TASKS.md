@@ -35,9 +35,9 @@
 
 ---
 
-### T-CONV-003: Скидка 30% на первую покупку после квиза 🚧 (09.05.2026, на dev)
+### T-CONV-003: Скидка 30% на первую покупку после квиза ✅ (09.05.2026)
 
-**Статус:** 🚧 Задеплоено на dev (commits df5a602, 0ac10aa) — ждёт верификации перед merge в main
+**Статус:** ✅ Задеплоено на main (merge commit d79d9c5). Verified на dev: toast «🎁 Алексей подобрал тебе скидку 30%...», перечёркнутая цена в sticky buy bar и trial paywall, Prodamus URL открывается с ценой 1043 ₽ (30% от 1490).
 
 **Что сделано:**
 - Миграция `users.quiz_top_topic text` (применена напрямую на VPS)
@@ -95,6 +95,43 @@
 **Трекинг:** guide_social_proof_shown {slug, count}
 
 **Статус:** 🔲
+
+---
+
+### T-CONV-003-ANON: Ловить анонов после квиза без email
+
+**Проблема:** анон проходит квиз, но не вводит email — остаётся неавторизованным, скидку получить не может.
+
+**Что уже работает:** анон проходит квиз → localStorage сохраняет `quiz_completed`, `quiz_top_topic`, `quiz_result`. При следующем логине (через email/TG/MAX) `upsert-user` синкает в users → `claimQuizReward` создаёт reward.
+
+**Что добавить:** для тех, кто остаётся анонимным — баннер при возврате в app: «У тебя есть скидка 30% на гайд по [тема] — залогинься, чтобы активировать». Показывать на главной если `localStorage.quiz_completed=true && !currentUser`. Клик → открыть auth modal.
+
+**Трекинг:** anon_quiz_discount_banner_shown, anon_quiz_discount_banner_clicked, anon_quiz_discount_banner_dismissed
+
+**Статус:** 🔲
+
+---
+
+### T-CONV-007: Скидка 30% после abandoned cart (purchase_start без paid)
+
+**Проблема:** 47 purchase_start за 30 дней → только 9 paid. 38 человек начали покупку и не купили. Сейчас никакого триггера не возвращает их.
+
+**Решение:** через 24 часа после `purchase_start` (если нет paid этого slug) — выдать reward 30% на тот же slug. Reward type: `abandoned_cart`. Срок 48 часов.
+
+**Конфликт с game-reward:**
+- если активна game 50% (24h) — НЕ выдавать 30% (50% лучше)
+- если активна game 25% — можно выдать 30% (лучше)
+- если уже есть quiz_first_purchase или abandoned_cart на этот slug — пропустить
+
+**Реализация:**
+- Edge Function `game-action`: новый action `claim_abandoned_reward`
+- Eligibility: `purchase_start >= 24h ago` (берётся последний slug), нет paid этого slug, нет активной game-50%, нет существующей abandoned_cart reward
+- Toast: «🎁 Не успели оформить? Скидка 30% на гайд [тема]. Действует 48 часов»
+- Маппинг slug в abandoned_cart напрямую (slug известен из purchase_start)
+
+**Трекинг:** abandoned_discount_shown {slug}, abandoned_discount_clicked {slug}
+
+**Статус:** 🔲 (логика подтверждена пользователем 09.05.2026)
 
 ---
 
