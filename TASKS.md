@@ -673,6 +673,19 @@ ORDER BY ae.created_at DESC;
 
 ---
 
+### T-PAYMENT-TRACK: Трекинг возврата без оплаты ✅ (09.05.2026)
+
+**Статус:** ✅ Задеплоено на main (merge commit a700828)
+
+**Что было:** покрытие воронки `purchase_start → ??? → paid` обрывалось на старте. `purchase_redirect_failed` (T-PAYMENT-MAX-001) трекает только когда openLink не сработал — но на проде он отрабатывает 100%, так что событие не пишется. Реальная потеря (38 из 47 за 30 дней) — пользователь открыл Prodamus, передумал, вернулся.
+
+**Что сделано:**
+- RLS: добавлен `purchase_user_returned` (миграция `20260509_purchase_user_returned_rls.sql`)
+- `buyGuide` (`index.html`): при visibilitychange→visible после редиректа на Prodamus трекаем `{slug, platform, already_paid, elapsed_sec}`
+- Будущая аналитика воронки: `purchase_start → purchase_user_returned → (через 5–10 мин) purchase_complete`. Кто вернулся, но не купил — реальные кандидаты на abandoned cart 30% (T-CONV-007).
+
+---
+
 ### T-PAYMENT-MAX-001: Диагностика и фикс конверсии покупок в MAX WebView
 **Приоритет:** 🔴 | **Статус:** В работе | **Среда:** dev (часть сделана, часть ждёт данных)
 
