@@ -105,14 +105,14 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ⏳ Активные
 
-_Сейчас всё свободно. Готовится SM-06 (игровая корзина) или SM-07 (Edge Function объяснения протокола) — выбор за продактом._
+_Свободно. Следующее по приоритету — SM-07 (Edge Function объяснения протокола, Anthropic API)._
 
-#### SM-MERGE-DEV-TO-PROD: квиз и кнопка СделайМеню в прод 📋 ждёт явное «ок»
-**Контекст:** На dev всё работает (SM-05 квиз протестирован, данные приходят в menu_profiles). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026).
+#### SM-MERGE-DEV-TO-PROD: квиз + корзина + кнопка СделайМеню в прод 📋 ждёт явное «ок»
+**Контекст:** На dev всё работает (SM-05 квиз, SM-06 корзина — оба протестированы, данные приходят в `menu_profiles`). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026, см. auto-memory `dev_first_then_prod`).
 **Что включает merge:**
-- Merge `miniapp` dev → main → деплой `menu/quiz.html` на `app.listoshenkov.ru/menu/quiz.html`
+- Merge `miniapp` dev → main → деплой `menu/quiz.html` и `menu/basket.html` на `app.listoshenkov.ru`
 - Замена CTA на `listoshenkov.ru/menu/`: сейчас ведёт на `app.listoshenkov.ru/?ref=landing_menu` (SPA), должна вести прямо на `app.listoshenkov.ru/menu/quiz.html?ref=landing_menu`
-- Замена CTA на главной `listoshenkov.ru/` («Открыть приложение» / кнопка СделайМеню) при необходимости
+- Замена CTA-кнопки «🍽 СделайМеню» на главной `listoshenkov.ru/` при необходимости
 
 ---
 
@@ -124,18 +124,31 @@ _Сейчас всё свободно. Готовится SM-06 (игровая 
 **Проверка:** прогон через UI — запись попала в `public.menu_profiles` (goal=therapeutic, protocol_auto=true, diagnoses включая hashimoto/pcos/menopause, imt_category=overweight, age_group=45-54, raw 176/80/46).
 **Файл:** `menu/quiz.html` (dev branch, ждёт SM-MERGE для прода)
 
-#### SM-04: Supabase — таблица `protocol_products` + 301 продукт (16.05.2026)
+#### SM-06: Игровая механика «Корзина» + fallback-список (16.05.2026)
+**Что сделано:** Самостоятельная страница `menu/basket.html`, DOM-анимация (не canvas) на базе предоставленного прототипа.
+- **Геймплей:** падают продукты (emoji + label), корзина-SVG ловит свайпом/мышью; слайдер скорости 1-5 (живое изменение темпа); пул ≤40 разрешённых + ≤12 ловушек, все critical/auto-include всегда в пуле сверх лимита, перетасовка
+- **Поимка:** ✓ ярко-зелёный тост `#16a34a` для правильно, ✗ ярко-красный `#dc2626` для ловушки + тряска корзины + красная вспышка по периметру арены
+- **Счётчик:** «Поймано: N / Y» (Y = все разрешённые в пуле); при сборе всех → «Все собраны! Жми Готово»
+- **Pause/Exit:** кнопка ⏸ в шапке + overlay (Продолжить / Закончить / Начать заново / Выйти на квиз), Esc = resume. Паттерн из `games/iron/`
+- **Источник protocol:** из `menu_last_profile_v1` в localStorage (квиз сохраняет snapshot перед очисткой state). Если `protocol_auto=true` → fetch из всех 4 базовых протоколов с пересечением ловушек
+- **Auto-add в результаты:** `nutrient_critical || auto_include`, минус продукты, совпавшие с `dislikes_text` по `DISLIKE_PATTERNS` (концепты: яйца / молочка / орехи / рыба / красное мясо). Debounce 350мс — таргеты исчезают сразу при упоминании
+- **Textareas под результатами:** «Что ещё хочешь добавить?» (`wishlist_text`) + «Что не любишь / реакция?» (`dislikes_text`)
+- **Fallback** для 55+: кнопка «Выбрать из списка» — обычные чекбоксы, critical отмечены по умолчанию, тот же путь к результатам
+- **Сохранение:** PATCH `menu_profiles?anon_profile_hash=eq.HASH` с favorite_products + wishlist_text + dislikes_text; localStorage backup `menu_favorite_products_v1`
+**URL на dev:** https://dev.listoshenkov.ru/menu/basket.html
+**Файл:** `menu/basket.html` (dev branch, ждёт SM-MERGE для прода)
+**Аналитика:** events `basket_open`, `basket_catch`, `basket_trap`, `basket_fallback_done`, `basket_done`
 
----
-
-### ✅ Выполнено
-
-#### SM-04: Supabase — таблица `protocol_products` + 301 продукт (16.05.2026)
-**Что сделано:** Создана `public.protocol_products` — справочник продуктов под 4 стартовых протокола. Заливка из `protocol_products_v4.csv` (после фикса одной опечатки `ловušка→ловушка`).
-**Распределение:** fodmap 125 (35 ловушек / 10 nutrient-critical / 90 разрешённых) · paleo 72 (6/8/66) · aip 55 (8/12/47) · lchf 49 (9/7/40). Итого 301.
-**Структура:** id (uuid) / protocol / product_name / category (белок/овощ/жир/крупа/фрукт/специя/сладость/молочное/ловушка) / meal_type (any/breakfast/lunch/dinner/snack) / is_trap / trap_reason / catch_text / kcal_per_100g + protein/fat/carbs / amount_* по ИМТ (пока NULL, будут отдельной заливкой) / unit / nutrient_critical / notes / created_at / updated_at. UNIQUE (protocol, product_name). 5 индексов под игру и генератор меню. RLS: SELECT для anon+authenticated, ALL для service_role. CHECK на meal_type.
-**Миграция:** `supabase/migrations/20260516_menu_protocol_products.sql` (commit dev)
-**Проверено:** psql-распределение, REST anon SELECT (200), REST anon INSERT (401 RLS denied).
+#### SM-04: Supabase — таблица `protocol_products` + 408 продуктов × 7 протоколов (16.05.2026)
+**Что сделано:** Создана `public.protocol_products` — справочник под 7 протоколов питания. Изначально залит CSV (301 строка, 4 протокола). Позже переезалит из `protocol_products_seed_v1.sql` (новый сид от Claude AI: 394 строки + ALTER ADD COLUMN emoji + восстановлены 14 яичных продуктов с auto_include=true). Очищены 2 дубля в исходном сиде: `paleo+Батат запечённый` (×5), `fodmap+Кешью`.
+**Распределение:** fodmap 93 · paleo 71 · mediterranean 73 · aip 52 · keto 54 · lchf 34 · wfpb 31. Итого 408.
+**Структура:** id (uuid) / protocol / product_name / category / **emoji** / meal_type (any/breakfast/lunch/dinner/snack) / is_trap / trap_reason / catch_text / kcal_per_100g + protein/fat/carbs / amount_* по ИМТ / unit / nutrient_critical / **auto_include** / notes / created_at / updated_at. UNIQUE (protocol, product_name). Индексы под игру и генератор меню. RLS: SELECT для anon+authenticated, ALL для service_role.
+**Миграции (применены 16.05.2026):**
+- `20260516_menu_protocol_products.sql` (исходная схема)
+- `20260516_menu_protocol_products_auto_include.sql` (auto_include + 9 яиц помечены)
+- `20260516_protocol_products_emoji_and_reseed.sql` (emoji-колонка + переезалитка)
+**Сид-файл:** `supabase/seeds/protocol_products_seed_v1.sql`
+**Проверено:** REST anon SELECT с emoji (200), REST anon INSERT (401 RLS denied), распределение через psql.
 
 #### SM-03: Supabase — таблица `menu_profiles` (16.05.2026)
 **Что сделано:** Создана `public.menu_profiles` — снимок состояния пользователя для генерации меню (цель / тип питания / протокол / диагнозы / параметры тела / категории / favorite/exclude products / target_calories+БЖУ). Поддержка двух режимов: anonymous (`anon_profile_hash`, для квиза без логина) и linked (`user_id` → `public.users(id)` bigint, после TG/MAX-логина). UNIQUE-индексы: один профиль на user_id или на hash. CHECK на enum-поля (goal/diet_type/imt_category/age_group) и физические диапазоны (рост 120-230, вес 30-250, возраст 14-100). RLS: anon только INSERT с валидным hash (длина 16-128) и без user_id; authenticated — self only по JWT.sub; service_role — всё. Trigger updated_at. raw-данные (рост/вес/возраст) остаются на Beget, в AI уходит только imt_category/age_group.
@@ -163,15 +176,16 @@ _Сейчас всё свободно. Готовится SM-06 (игровая 
 
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
-| SM-06 | Игровая механика «Корзина» + fallback-список | 🟠 | SM-04 ✅, SM-05 ✅ |
-| SM-07 | Edge Function: generate-explanation-and-instruction | 🟠 | SM-05 |
-| SM-08 | Edge Function: generate-menu (JSON + валидация) | 🟠 | SM-04, SM-07 |
-| SM-09 | Экран превью: объяснение + день 1 без граммовок | 🟠 | SM-07 |
+| SM-07 | Edge Function: generate-explanation-and-instruction (Anthropic haiku) | 🟠 | SM-05 ✅ |
+| SM-08 | Edge Function: generate-menu (Anthropic sonnet + JSON + валидация) | 🟠 | SM-04 ✅, SM-07 |
+| SM-09 | Экран превью: объяснение + день 1 без граммовок + finalize favorite_products из localStorage | 🟠 | SM-07 |
 | SM-10 | Оплата Prodamus + webhook handle-payment | 🟠 | SM-09 |
 | SM-11 | Полное меню (7 дней) + PDF (html2pdf.js) | 🟠 | SM-08, SM-10 |
 | SM-12 | Блок БАД-рекомендаций (таблица protocol_bads) | 🟡 | SM-11 |
 | SM-13 | Апсейл: гайды → консультация (маппинг протокол → гайд) | 🟡 | SM-11 |
-| SM-14 | Форма «Книга предложений» (таблица menu_requests) | 🟡 | SM-03 |
+| SM-14 | Форма «Книга предложений» (таблица menu_requests) | 🟡 | SM-03 ✅ |
+| SM-15 | protocol_products: заполнить amount_* по ИМТ (сейчас часть NULL) | 🟡 | SM-04 ✅ |
+| SM-16 | wishlist_text аналитика: dashboard «каких продуктов не хватает в БД» | 🟢 | SM-06 ✅ |
 
 ---
 
