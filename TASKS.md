@@ -105,15 +105,17 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ⏳ Активные
 
-#### SM-03: Supabase — таблица `user_profiles`
-**Статус:** В работе (CC)
-**Что делаем:** Создать таблицу для полного профиля (рост/вес/возраст + категории + параметры меню). Поддержка анонимных профилей (без `user_id`, по `anon_profile_hash`) для прохождения квиза без логина. FK на существующую `public.users`, не `auth.users`. RLS: пользователь видит/правит только свой профиль; service_role полный доступ.
-**Файл:** `supabase/migrations/20260516_menu_user_profiles.sql`
-**Готово когда:** Таблица создана, RLS включён, INSERT для anon + linked user проходит.
+_Свободно — следующий шаг SM-04 (protocol_products)._
 
 ---
 
 ### ✅ Выполнено
+
+#### SM-03: Supabase — таблица `menu_profiles` (16.05.2026)
+**Что сделано:** Создана `public.menu_profiles` — снимок состояния пользователя для генерации меню (цель / тип питания / протокол / диагнозы / параметры тела / категории / favorite/exclude products / target_calories+БЖУ). Поддержка двух режимов: anonymous (`anon_profile_hash`, для квиза без логина) и linked (`user_id` → `public.users(id)` bigint, после TG/MAX-логина). UNIQUE-индексы: один профиль на user_id или на hash. CHECK на enum-поля (goal/diet_type/imt_category/age_group) и физические диапазоны (рост 120-230, вес 30-250, возраст 14-100). RLS: anon только INSERT с валидным hash (длина 16-128) и без user_id; authenticated — self only по JWT.sub; service_role — всё. Trigger updated_at. raw-данные (рост/вес/возраст) остаются на Beget, в AI уходит только imt_category/age_group.
+**Миграция:** `supabase/migrations/20260516_menu_profiles.sql`
+**Решение по имени:** `menu_profiles` вместо `user_profiles` из PRD — потому что в БД уже есть `user_health_profile` (медицинский профиль с overlapping полями diagnoses/age/weight/height). Новая таблица — это **menu-session-specific snapshot**, не общий health-профиль.
+**Проверено:** REST-тесты anon (HTTP 201 valid / 401 RLS на user_id / 401 RLS на короткий hash / 400 CHECK на invalid goal).
 
 #### SM-02: Supabase — таблица `waitlist` (16.05.2026)
 **Что сделано:** Создана `public.waitlist` (email / source / user_agent / ip_hash / created_at) с индексами и RLS. Политика `allow_public_insert` для `anon` с email-regex и whitelisted `source` (menu_landing / guide_landing / home_landing). REST INSERT verified (HTTP 201), CORS preflight открыт.
@@ -136,7 +138,7 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
 | SM-04 | Supabase: таблица `protocol_products` (60-80 позиций × 4 протокола) | 🔴 | — |
-| SM-05 | Онбординг-квиз (5 шагов + anonymizeProfile()) | 🟠 | SM-03 |
+| SM-05 | Онбординг-квиз (5 шагов + anonymizeProfile() → menu_profiles) | 🟠 | SM-03 ✅ |
 | SM-06 | Игровая механика «Корзина» + fallback-список | 🟠 | SM-04, SM-05 |
 | SM-07 | Edge Function: generate-explanation-and-instruction | 🟠 | SM-05 |
 | SM-08 | Edge Function: generate-menu (JSON + валидация) | 🟠 | SM-04, SM-07 |
