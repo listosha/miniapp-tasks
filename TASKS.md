@@ -105,7 +105,23 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ⏳ Активные
 
-_Свободно — следующий шаг SM-04 (protocol_products)._
+#### SM-05: Онбординг-квиз 5 шагов
+**Статус:** На dev для тестирования (CC, 16.05.2026)
+**Test URL:** https://dev.listoshenkov.ru/menu/quiz.html
+**Что готово:**
+- Самостоятельная страница `menu/quiz.html` (не трогает основной SPA `index.html`)
+- 5 шагов: цель / тип питания / протокол / диагнозы / параметры тела
+- Прогресс-бар, навигация вперёд-назад, валидация на каждом шаге
+- localStorage-персистентность (`menu_quiz_state_v1`, `menu_anon_hash_v1`) — обновление страницы не теряет прогресс
+- `anonymizeProfile()` на клиенте: IMT-категория и age-group считаются локально, raw-данные не уходят в AI
+- Тосты-описания протоколов на ⓘ-иконках (FODMAP, Палео, АИП, Кето, LCHF, FMD, Средиземноморский)
+- Защита от противоречий в диагнозах: «Ничего из списка» взаимоисключающее с остальными
+- POST в `public.menu_profiles` через anon-key + PATCH-fallback на 409 (если профиль уже есть по hash)
+- Готовый экран: сводка ответов + CTA на waitlist лендинга
+- Аналитика: events `menu_quiz_open`, `menu_quiz_step`, `menu_quiz_completed`
+- Палитра «пыльная роза», адаптив (на узких экранах поля в 2 колонки)
+**Файл:** `menu/quiz.html` (на dev: `/var/www/dev/menu/quiz.html`)
+**После проверки:** merge dev → main → деплой на `app.listoshenkov.ru/menu/quiz.html` + обновить CTA на лендинге `listoshenkov.ru/menu/` (сейчас идёт на `?ref=landing_menu` в SPA, должен идти прямо на квиз)
 
 ---
 
