@@ -127,6 +127,13 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ✅ Выполнено
 
+#### SM-04: Supabase — таблица `protocol_products` + 301 продукт (16.05.2026)
+**Что сделано:** Создана `public.protocol_products` — справочник продуктов под 4 стартовых протокола. Заливка из `protocol_products_v4.csv` (после фикса одной опечатки `ловušка→ловушка`).
+**Распределение:** fodmap 125 (35 ловушек / 10 nutrient-critical / 90 разрешённых) · paleo 72 (6/8/66) · aip 55 (8/12/47) · lchf 49 (9/7/40). Итого 301.
+**Структура:** id (uuid) / protocol / product_name / category (белок/овощ/жир/крупа/фрукт/специя/сладость/молочное/ловушка) / meal_type (any/breakfast/lunch/dinner/snack) / is_trap / trap_reason / catch_text / kcal_per_100g + protein/fat/carbs / amount_* по ИМТ (пока NULL, будут отдельной заливкой) / unit / nutrient_critical / notes / created_at / updated_at. UNIQUE (protocol, product_name). 5 индексов под игру и генератор меню. RLS: SELECT для anon+authenticated, ALL для service_role. CHECK на meal_type.
+**Миграция:** `supabase/migrations/20260516_menu_protocol_products.sql` (commit dev)
+**Проверено:** psql-распределение, REST anon SELECT (200), REST anon INSERT (401 RLS denied).
+
 #### SM-03: Supabase — таблица `menu_profiles` (16.05.2026)
 **Что сделано:** Создана `public.menu_profiles` — снимок состояния пользователя для генерации меню (цель / тип питания / протокол / диагнозы / параметры тела / категории / favorite/exclude products / target_calories+БЖУ). Поддержка двух режимов: anonymous (`anon_profile_hash`, для квиза без логина) и linked (`user_id` → `public.users(id)` bigint, после TG/MAX-логина). UNIQUE-индексы: один профиль на user_id или на hash. CHECK на enum-поля (goal/diet_type/imt_category/age_group) и физические диапазоны (рост 120-230, вес 30-250, возраст 14-100). RLS: anon только INSERT с валидным hash (длина 16-128) и без user_id; authenticated — self only по JWT.sub; service_role — всё. Trigger updated_at. raw-данные (рост/вес/возраст) остаются на Beget, в AI уходит только imt_category/age_group.
 **Миграция:** `supabase/migrations/20260516_menu_profiles.sql`
@@ -153,7 +160,6 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
-| SM-04 | Supabase: таблица `protocol_products` (60-80 позиций × 4 протокола) | 🔴 | — |
 | SM-05 | Онбординг-квиз (5 шагов + anonymizeProfile() → menu_profiles) | 🟠 | SM-03 ✅ |
 | SM-06 | Игровая механика «Корзина» + fallback-список | 🟠 | SM-04, SM-05 |
 | SM-07 | Edge Function: generate-explanation-and-instruction | 🟠 | SM-05 |
