@@ -100,25 +100,33 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ## 🍽 СделайМеню (menu.listoshenkov.ru)
 > Спека: sdelaj_menu_PRD_v2.md | Таски: sdelaj_menu_TASKS.md
-> Стек: GitHub Pages (лендинг) + существующий Supabase + Edge Functions + Anthropic API
+> Стек: статика на Beget VPS (лендинг) + self-hosted Supabase + Edge Functions + Anthropic API
 > Цветовая схема: Пыльная роза (#4B1528 / #D4537E / #FDF4F7)
 
 ### ⏳ Активные
 
-#### SM-01: Hero — блок вторичных выгод
+#### SM-03: Supabase — таблица `user_profiles`
 **Статус:** В работе (CC)
-**Что делаем:** Вставить 8 строк с левой границей #D4537E в Hero лендинга, после подзаголовка, перед иконками и CTA-кнопкой.
-**Файл:** `menu/index.html`
-**Готово когда:** Блок виден на мобильном и десктопе, цвет текста #F4C0D1, граница #D4537E.
+**Что делаем:** Создать таблицу для полного профиля (рост/вес/возраст + категории + параметры меню). Поддержка анонимных профилей (без `user_id`, по `anon_profile_hash`) для прохождения квиза без логина. FK на существующую `public.users`, не `auth.users`. RLS: пользователь видит/правит только свой профиль; service_role полный доступ.
+**Файл:** `supabase/migrations/20260516_menu_user_profiles.sql`
+**Готово когда:** Таблица создана, RLS включён, INSERT для anon + linked user проходит.
 
 ---
 
 ### ✅ Выполнено
 
-#### SM-00: Лендинг `listoshenkov.ru/menu`
-**Дата:** май 2026
-**Что сделано:** Статическая HTML-страница на GitHub Pages. Hero, блок «Для кого» (10 карточек), «Как работает» (4 шага), протоколы с тостами, пример меню (день 1 FODMAP), FAQ (8 вопросов), форма waitlist → Supabase, footer.
+#### SM-02: Supabase — таблица `waitlist` (16.05.2026)
+**Что сделано:** Создана `public.waitlist` (email / source / user_agent / ip_hash / created_at) с индексами и RLS. Политика `allow_public_insert` для `anon` с email-regex и whitelisted `source` (menu_landing / guide_landing / home_landing). REST INSERT verified (HTTP 201), CORS preflight открыт.
+**Миграция:** `supabase/migrations/20260516_menu_waitlist.sql`
+
+#### SM-01: Hero — блок вторичных выгод (16.05.2026)
+**Что сделано:** 8 строк выгод с левой границей #D4537E между подзаголовком и pills в Hero лендинга. Цвет текста #F4C0D1, мобильная адаптация (font 14 + меньше padding).
+**Файл:** `menu/index.html` (на VPS: `/var/www/landing/menu/index.html`)
+
+#### SM-00: Лендинг `listoshenkov.ru/menu` (16.05.2026)
+**Что сделано:** Статическая HTML-страница на **Beget VPS** в `/var/www/landing/menu/index.html` (правится через SSH как остальные страницы лендинга — не git, не GitHub Pages). Hero + блок «Для кого» (10 карточек) + «Как работает» (4 шага) + протоколы с тостами + пример меню (день 1 FODMAP) + FAQ (8 вопросов) + форма waitlist → Supabase + footer с цветными кнопками. SEO/og/JSON-LD (Service + FAQPage). Аналитика ym+ga4. Sitemap обновлён.
 **URL:** https://listoshenkov.ru/menu/
+**Локальный исходник:** `C:\Users\listo\landing-source\menu\index.html`
 **Цветовая схема:** Пыльная роза применена.
 
 ---
@@ -127,8 +135,6 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
-| SM-02 | Supabase: таблица `waitlist` (RLS, anon insert) | 🔴 | — |
-| SM-03 | Supabase: таблица `user_profiles` | 🔴 | — |
 | SM-04 | Supabase: таблица `protocol_products` (60-80 позиций × 4 протокола) | 🔴 | — |
 | SM-05 | Онбординг-квиз (5 шагов + anonymizeProfile()) | 🟠 | SM-03 |
 | SM-06 | Игровая механика «Корзина» + fallback-список | 🟠 | SM-04, SM-05 |
