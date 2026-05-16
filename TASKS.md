@@ -105,23 +105,26 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ⏳ Активные
 
-#### SM-05: Онбординг-квиз 5 шагов
-**Статус:** На dev для тестирования (CC, 16.05.2026)
-**Test URL:** https://dev.listoshenkov.ru/menu/quiz.html
-**Что готово:**
-- Самостоятельная страница `menu/quiz.html` (не трогает основной SPA `index.html`)
-- 5 шагов: цель / тип питания / протокол / диагнозы / параметры тела
-- Прогресс-бар, навигация вперёд-назад, валидация на каждом шаге
-- localStorage-персистентность (`menu_quiz_state_v1`, `menu_anon_hash_v1`) — обновление страницы не теряет прогресс
-- `anonymizeProfile()` на клиенте: IMT-категория и age-group считаются локально, raw-данные не уходят в AI
-- Тосты-описания протоколов на ⓘ-иконках (FODMAP, Палео, АИП, Кето, LCHF, FMD, Средиземноморский)
-- Защита от противоречий в диагнозах: «Ничего из списка» взаимоисключающее с остальными
-- POST в `public.menu_profiles` через anon-key + PATCH-fallback на 409 (если профиль уже есть по hash)
-- Готовый экран: сводка ответов + CTA на waitlist лендинга
-- Аналитика: events `menu_quiz_open`, `menu_quiz_step`, `menu_quiz_completed`
-- Палитра «пыльная роза», адаптив (на узких экранах поля в 2 колонки)
-**Файл:** `menu/quiz.html` (на dev: `/var/www/dev/menu/quiz.html`)
-**После проверки:** merge dev → main → деплой на `app.listoshenkov.ru/menu/quiz.html` + обновить CTA на лендинге `listoshenkov.ru/menu/` (сейчас идёт на `?ref=landing_menu` в SPA, должен идти прямо на квиз)
+_Сейчас всё свободно. Готовится SM-06 (игровая корзина) или SM-07 (Edge Function объяснения протокола) — выбор за продактом._
+
+#### SM-MERGE-DEV-TO-PROD: квиз и кнопка СделайМеню в прод 📋 ждёт явное «ок»
+**Контекст:** На dev всё работает (SM-05 квиз протестирован, данные приходят в menu_profiles). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026).
+**Что включает merge:**
+- Merge `miniapp` dev → main → деплой `menu/quiz.html` на `app.listoshenkov.ru/menu/quiz.html`
+- Замена CTA на `listoshenkov.ru/menu/`: сейчас ведёт на `app.listoshenkov.ru/?ref=landing_menu` (SPA), должна вести прямо на `app.listoshenkov.ru/menu/quiz.html?ref=landing_menu`
+- Замена CTA на главной `listoshenkov.ru/` («Открыть приложение» / кнопка СделайМеню) при необходимости
+
+---
+
+### ✅ Выполнено
+
+#### SM-05: Онбординг-квиз 5 шагов (16.05.2026)
+**Что сделано:** Самостоятельная страница `menu/quiz.html` (не трогает SPA `index.html`). 5 шагов (цель / тип питания / протокол / диагнозы / параметры тела), прогресс-бар, навигация вперёд-назад, валидация. localStorage-персистентность (`menu_quiz_state_v1`, `menu_anon_hash_v1`). `anonymizeProfile()` на клиенте: ИМТ-категория и age-group считаются локально, raw данные (рост/вес/возраст) хранятся только в Supabase на Beget. Тосты-описания протоколов на ⓘ. Защита диагнозов: «Ничего» взаимоисключающее. POST в `public.menu_profiles` через anon-key + PATCH-fallback на 409 (UNIQUE по hash). Готовый экран со сводкой. Аналитика (`menu_quiz_open/step/completed`). Палитра «пыльная роза», адаптив. **Фикс по ходу:** убран `Prefer: resolution=merge-duplicates` — он включал UPSERT-режим, для которого `anon` не имеет UPDATE-политики (по дизайну).
+**URL на dev:** https://dev.listoshenkov.ru/menu/quiz.html
+**Проверка:** прогон через UI — запись попала в `public.menu_profiles` (goal=therapeutic, protocol_auto=true, diagnoses включая hashimoto/pcos/menopause, imt_category=overweight, age_group=45-54, raw 176/80/46).
+**Файл:** `menu/quiz.html` (dev branch, ждёт SM-MERGE для прода)
+
+#### SM-04: Supabase — таблица `protocol_products` + 301 продукт (16.05.2026)
 
 ---
 
@@ -160,8 +163,7 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
-| SM-05 | Онбординг-квиз (5 шагов + anonymizeProfile() → menu_profiles) | 🟠 | SM-03 ✅ |
-| SM-06 | Игровая механика «Корзина» + fallback-список | 🟠 | SM-04, SM-05 |
+| SM-06 | Игровая механика «Корзина» + fallback-список | 🟠 | SM-04 ✅, SM-05 ✅ |
 | SM-07 | Edge Function: generate-explanation-and-instruction | 🟠 | SM-05 |
 | SM-08 | Edge Function: generate-menu (JSON + валидация) | 🟠 | SM-04, SM-07 |
 | SM-09 | Экран превью: объяснение + день 1 без граммовок | 🟠 | SM-07 |
