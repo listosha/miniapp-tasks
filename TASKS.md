@@ -96,6 +96,87 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ## ⏳ Активные задачи
 
+---
+
+## 🍽 СделайМеню — новый раздел (май 2026)
+
+**Контекст:** персональный генератор меню питания под диагноз/протокол. Гибридная архитектура: лендинг `listoshenkov.ru/menu` отдельно (на Beget) + сам функционал — раздел внутри существующего `app.listoshenkov.ru`. Логин TG/MAX только перед оплатой, квиз/превью без авторизации. AI: Anthropic (haiku-4-5 для объяснений, sonnet-4-6 для меню) с возможностью теста российских провайдеров на этапе реализации.
+
+**Источники:** PRD v2.0 и TASKS-list лежат у пользователя в `C:\Users\listo\Downloads\sdelaj_menu_PRD_v2.md` и `sdelaj_menu_TASKS.md`. Архитектурные решения — в auto-memory `sdelaj_menu_architecture.md`.
+
+---
+
+### TASK-01: Лендинг `listoshenkov.ru/menu` ✅ (16.05.2026)
+
+**Статус:** ✅ Задеплоено, в проде.
+
+- Стек: статический HTML на Beget VPS в `/var/www/landing/menu/index.html` (правится через SSH, не в git — как все страницы лендинга)
+- Палитра «пыльная роза»: hero #4B1528, CTA #D4537E, accent #993556, bg #FDF4F7
+- 8 блоков по PRD: hero (с pills и вторичными выгодами) · для кого (10 карт) · как работает (4 шага) · протоколы (10 карт с тостами) · пример одного дня меню · FAQ (8 вопросов) · waitlist-форма · footer (4 цветные кнопки: Главная/Консультация/Приложение/Telegram)
+- Hero-benefits: 8 фраз с CTA-цветной левой границей, между подзаголовком и pills
+- Бонус-блок под образцом меню: «Рекомендации по добавкам из консультаций»
+- Тосты протоколов — на чистом JS, закрытие по клику вне/Esc
+- FAQ — нативный `<details>/<summary>` с +/− индикатором
+- SEO: canonical, og-теги, JSON-LD Service + FAQPage
+- Аналитика: ym (109216852) + ga4 (G-3ZVZ6L2TY1), цели `protocol_toast_*`, `waitlist_signup`
+- CTA «Попробовать» и в шапке, и в hero, и финальный → `app.listoshenkov.ru/?ref=landing_menu` (deeplink на будущий раздел)
+- Sitemap обновлён: `listoshenkov.ru/menu/` priority 0.9 monthly
+- Все «длинные тире» заменены на короткие дефисы (стилистика Алексея)
+- Мобильная адаптация: 2-колоночная сетка для «Для кого», стэк-карточки, увеличенные шрифты вне заголовков
+
+**Локальный исходник:** `C:\Users\listo\landing-source\menu\index.html` (для следующих правок). Git не трогаем — синк с VPS через SSH/scp.
+
+---
+
+### TASK-02: Supabase таблица `waitlist` ✅ (16.05.2026)
+
+**Статус:** ✅ Создана и протестирована.
+
+- Миграция: `supabase/migrations/20260516_menu_waitlist.sql` (в репо `miniapp`, применена прямо на self-hosted Supabase через `docker exec psql`)
+- Поля: `id` (uuid), `email` (text, NOT NULL), `source` (text default 'menu_landing'), `user_agent`, `ip_hash`, `created_at`
+- Индексы по email, source, created_at DESC
+- RLS включён. `allow_public_insert` для `anon`/`authenticated` с валидацией:
+  - email-regex `^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$`
+  - длина 5–320
+  - `source` в whitelist: `menu_landing`, `guide_landing`, `home_landing`
+- `service_role_all` — полный доступ для админки
+- REST INSERT проверен curl'ом → HTTP 201
+- CORS preflight открыт (`Access-Control-Allow-Origin: *`) — форма с лендинга работает
+
+---
+
+### TASK-MENU-APP-STUB: Заглушка «Скоро!» в app для `?ref=landing_menu` 📋 планируется
+
+**Контекст:** Сейчас клик по любому CTA на `listoshenkov.ru/menu/` ведёт на `app.listoshenkov.ru/?ref=landing_menu`, но в самом app никакой обработки этого параметра нет — открывается обычная главная. Нужен мини-баннер «Раздел СделайМеню скоро запустится — сейчас доступен только превью».
+
+**Что делать:**
+- В `index.html` мини-аппы: при `URLSearchParams.get('ref') === 'landing_menu'` показать одноразовый баннер/toast
+- Анналитика: `analytics_events` event_type `landing_menu_visit` (нужно добавить в RLS-чеклист)
+- Возможно подложить промокод или скидку на будущее меню
+
+---
+
+### Бэклог СделайМеню — Фаза 1 MVP (4-6 недель)
+
+В порядке критического пути:
+
+- **TASK-03**: Онбординг-квиз (5 шагов). Цель → тип питания → протокол → диагнозы → параметры тела. Анонимизация ИМТ/возраста на клиенте.
+- **TASK-04**: Таблица `user_profiles` (полный профиль с ростом/весом/возрастом — только на Beget, в Anthropic не уходит)
+- **TASK-05**: Игровая корзина «Поймай продукты». Canvas или CSS, fallback-список для 55+.
+- **TASK-06**: Таблица `protocol_products` — 60-80 продуктов × 3-4 протокола (FODMAP, Палео, АИП, LCHF на старте). Граммовки берутся из таблицы, не генерируются.
+- **TASK-07**: Edge Function `generate-explanation-and-instruction` (Anthropic haiku-4-5 + кеш `protocol_explanations`)
+- **TASK-08**: Edge Function `generate-menu` (Anthropic sonnet-4-6 + JSON-валидация + кеш `menu_cache`)
+- **TASK-09**: Экран превью (день 1 без граммовок + объяснение)
+- **TASK-10**: Оплата через Prodamus (1 200 ₽) + webhook handler + `menu_purchases`
+- **TASK-11**: Полное меню на 7 дней + PDF (html2pdf на клиенте)
+- **TASK-12**: Блок рекомендации БАДов (`protocol_bads`)
+- **TASK-13**: Апсейл — связанные гайды + консультация
+- **TASK-14**: Форма «Книга предложений» (`menu_requests`)
+
+**Минимальный платящий MVP:** TASK-03 → 04 → 06 → 07 → 08 → 09 → 10 → 11. Остальные дополняют, но не блокируют первые продажи.
+
+---
+
 ## Активные задачи - конверсия (7 мая 2026)
 
 **Контекст:** 7 дней без покупок при растущем трафике и вовлечении. Bounce 14%, медиана 204с, лента работает (91% сессий), отзывы видят (31% guide_view), но purchase_start = 0.
