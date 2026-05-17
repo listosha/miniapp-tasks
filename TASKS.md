@@ -105,18 +105,38 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ⏳ Активные
 
-_Свободно. Следующее по приоритету — **SM-09** (UI-экран после квиза+корзины: объяснение протокола + preview 1 дня меню, использует SM-07 и SM-08)._
+_Свободно. Следующее по приоритету — **SM-10** (Prodamus + webhook handle-payment) или **SM-08-ASYNC** (async-обёртка для days=7 с email-уведомлением)._
 
-#### SM-MERGE-DEV-TO-PROD: квиз + корзина + кнопка СделайМеню в прод 📋 ждёт явное «ок»
-**Контекст:** На dev всё работает (SM-05 квиз, SM-06 корзина — оба протестированы, данные приходят в `menu_profiles`). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026, см. auto-memory `dev_first_then_prod`).
+#### SM-MERGE-DEV-TO-PROD: квиз + корзина + превью + payment-soon в прод 📋 ждёт явное «ок»
+**Контекст:** На dev всё работает: SM-05 квиз ✅, SM-06 корзина ✅, SM-07/08 EF ✅ (уже в общем self-hosted Supabase, обслуживают и dev и prod), SM-09 превью ✅ (Алексей подтвердил «первично всё работает» 17.05.2026). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026, см. auto-memory `dev_first_then_prod`).
 **Что включает merge:**
-- Merge `miniapp` dev → main → деплой `menu/quiz.html` и `menu/basket.html` на `app.listoshenkov.ru`
+- Merge `miniapp` dev → main → деплой `menu/quiz.html`, `menu/basket.html`, `menu/preview.html`, `menu/payment-soon.html` на `app.listoshenkov.ru`
 - Замена CTA на `listoshenkov.ru/menu/`: сейчас ведёт на `app.listoshenkov.ru/?ref=landing_menu` (SPA), должна вести прямо на `app.listoshenkov.ru/menu/quiz.html?ref=landing_menu`
 - Замена CTA-кнопки «🍽 СделайМеню» на главной `listoshenkov.ru/` при необходимости
+**Когда мержить:** после накопления правок промпта от Алексея (SM-09-TUNE) и/или явного «ок, в прод». Пока живые пользователи получат «Оплату подключим в ближайшие дни» — это нормально только если мы предупредили.
 
 ---
 
 ### ✅ Выполнено
+
+#### SM-09: UI-экран превью (объяснение + меню 1 день без граммовок) + заглушка payment-soon (17.05.2026)
+**Что сделано:** Самостоятельная страница `menu/preview.html` в палитре «пыльная роза». Финальное звено бесплатного онбординга: квиз → корзина → превью → (оплата). Использует SM-07 (объяснение) и SM-08 (preview 1 дня) параллельно через `Promise.all` — суммарное ожидание = max(28с, 17с) вместо последовательного сложения.
+- **Загрузка профиля:** localStorage `menu_last_profile_v1` (квиз) + `menu_favorite_products_v1` (корзина, опционально). Если профиля нет → error-экран с предложением пройти квиз.
+- **resolveProtocol на клиенте** (логика 1:1 с EF generate-menu): vegan→wfpb, vegetarian→mediterranean, ir→lchf, gut_issues→fodmap, inflammation/joints→aip, иначе mediterranean. Применяется когда `protocol_auto=true` в квизе — обе EF гарантированно получают конкретный protocol, кеш не размазывается по «auto». **Фикс по ходу:** до этого preview падал на `explanation 400: protocol_required` для пользователей, выбравших «Не знаю — подберите».
+- **UI-плашка** «Алексей рекомендует тебе [Палео]» под заголовком — показывается только если был auto, с предложением вернуться в квиз и выбрать вручную.
+- **Loading-экран** с fake-прогрессом и честным сообщением «обычно 30-40 секунд», 4 стадии (Готовим объяснение → Алексей формулирует → Подбираем продукты → Собираем меню).
+- **Клиентский кеш** `menu_preview_v2` на 30 минут по отпечатку профиля — back/forward не дёргают EF повторно.
+- **Аккордеон** «Инструкция к меню» открыт по умолчанию.
+- **Превью одного дня без граммовок:** продукт + «— г», тотал «— ккал». Граммовки только в полной версии после оплаты.
+- **Email-форма** с regex-валидацией, sticky-CTA снизу при скролле (IntersectionObserver). При CTA: `PATCH menu_profiles?anon_profile_hash=eq.X` с email через anon-key (RLS anon_self_update уже было от SM-06), редирект на `/menu/payment-soon.html?email=...`.
+- **menu/payment-soon.html** — заглушка до SM-10: подсвечивает email, 3-шаговый чеклист «что дальше», CTA на лендинг + возврат к превью.
+- **basket.html:** финальный CTA «Оставить email до запуска» → заменён на «Дальше — превью меню →».
+**URL на dev:** https://dev.listoshenkov.ru/menu/preview.html
+**Цепочка:** quiz → basket → preview → payment-soon. EF-стек: explanation (Haiku, 30д кеш) + menu days=1 (Sonnet, 14д кеш).
+**Миграция:** `supabase/migrations/20260517_menu_profiles_add_email.sql` — добавлена колонка `email` в `menu_profiles` (применена 17.05.2026 через `psql -U supabase_admin` — таблицу создавал он, postgres не owner).
+**Файлы:** `menu/preview.html`, `menu/payment-soon.html`, `menu/basket.html` (правка CTA). Коммиты `3e287a1`, `7f826e3` (на dev, ждёт SM-MERGE для прода).
+**Аналитика:** preview_open, preview_ready, preview_cta_click, preview_email_saved, preview_error, preview_no_profile, payment_soon_view.
+**Тестирование 17.05.2026:** Алексей прошёл всю цепочку quiz→basket→preview с `protocol_auto=true`, подтвердил «первично всё работает, правки промпта позже».
 
 #### SM-08: Edge Function `generate-menu` (Anthropic Sonnet 4.6) + кеш `menu_cache` (17.05.2026)
 **Что сделано:** Edge Function принимает анонимный профиль + `days` (1 для preview, 7 для полного меню), подтягивает разрешённые продукты протокола из `protocol_products`, передаёт в `claude-sonnet-4-6` с граммовками для текущего `imt_category` (граммовки из БД, не от AI). Кеширует ответ в `menu_cache` на 14 дней по ключу `protocol|goal|meal_count|imt_category|diet_type|days`. При `protocol_auto=true` сама выбирает базовый протокол: vegan→wfpb, vegetarian→mediterranean, ir→lchf, gut_issues→fodmap, inflammation→aip, иначе mediterranean. `exclude_products` фильтрует на стороне EF (case-insensitive substring). Системный промпт вшит из `system_prompt_menu.md` v1, чеклист обобщён под динамическое количество дней. Проверка `stop_reason: 'max_tokens'` → ошибка (JSON был бы битый). Валидация `parsed.week.length === days`.
@@ -209,7 +229,8 @@ _Свободно. Следующее по приоритету — **SM-09** (U
 
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
-| SM-09 | UI-экран превью: объяснение протокола (SM-07) + preview 1 дня меню (SM-08, `days=1`) + finalize favorite_products из localStorage | 🔴 | SM-07 ✅, SM-08 ✅ |
+| SM-10 | Оплата Prodamus + webhook handle-payment (мэтчинг по email, который собирается на preview) | 🔴 | SM-09 ✅ |
+| SM-09-TUNE | Правки промптов explanation/menu по результатам тестирования (от Алексея, накопить пакетно — capslock, орфография, калорийность ±50, формулировки) | 🟠 | SM-09 ✅ |
 | SM-08-TUNE | Тюнинг промпта `generate-menu`: калорийность стабильно занижена на 50-150 ккал (1/7 дней в коридоре ±50) — править системный промпт или калибровать target в EF | 🟠 | SM-08 ✅ |
 | SM-07-TUNE | Тюнинг промпта `generate-explanation-and-instruction`: убрать capslock-заголовки в `instruction`, добавить корректную форму «инсулинорезистентность» как пример | 🟡 | SM-07 ✅ |
 | SM-10 | Оплата Prodamus + webhook handle-payment | 🟠 | SM-09 |
