@@ -105,7 +105,7 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 
 ### ⏳ Активные
 
-_Свободно. Следующее по приоритету — SM-07 (Edge Function объяснения протокола, Anthropic API)._
+_Свободно. Следующее по приоритету — **SM-09** (UI-экран после квиза+корзины: объяснение протокола + preview 1 дня меню, использует SM-07 и SM-08)._
 
 #### SM-MERGE-DEV-TO-PROD: квиз + корзина + кнопка СделайМеню в прод 📋 ждёт явное «ок»
 **Контекст:** На dev всё работает (SM-05 квиз, SM-06 корзина — оба протестированы, данные приходят в `menu_profiles`). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026, см. auto-memory `dev_first_then_prod`).
@@ -117,6 +117,39 @@ _Свободно. Следующее по приоритету — SM-07 (Edge 
 ---
 
 ### ✅ Выполнено
+
+#### SM-08: Edge Function `generate-menu` (Anthropic Sonnet 4.6) + кеш `menu_cache` (17.05.2026)
+**Что сделано:** Edge Function принимает анонимный профиль + `days` (1 для preview, 7 для полного меню), подтягивает разрешённые продукты протокола из `protocol_products`, передаёт в `claude-sonnet-4-6` с граммовками для текущего `imt_category` (граммовки из БД, не от AI). Кеширует ответ в `menu_cache` на 14 дней по ключу `protocol|goal|meal_count|imt_category|diet_type|days`. При `protocol_auto=true` сама выбирает базовый протокол: vegan→wfpb, vegetarian→mediterranean, ir→lchf, gut_issues→fodmap, inflammation→aip, иначе mediterranean. `exclude_products` фильтрует на стороне EF (case-insensitive substring). Системный промпт вшит из `system_prompt_menu.md` v1, чеклист обобщён под динамическое количество дней. Проверка `stop_reason: 'max_tokens'` → ошибка (JSON был бы битый). Валидация `parsed.week.length === days`.
+**Endpoint:** `POST https://uckuyoyubub.beget.app/functions/v1/generate-menu`
+**Тело:** `{ ...профиль, days: 1|7 }`
+**Ответ:** `{ menu: {week: [...]}, selected_protocol, days, cached, model }`
+**Миграция:** `supabase/migrations/20260517_menu_cache.sql` (применена 17.05.2026)
+**Файл EF:** `supabase/functions/generate-menu/index.ts` (закопирован в `/opt/beget/supabase/volumes/functions/generate-menu/`)
+**Коммит:** `7b8857e` (на dev)
+**Тесты (FODMAP + ИР + менопауза, overweight, 3 приёма, target 1500):**
+- `days=1`: 28 сек, 1420 ккал, JSON валиден, 3 приёма, `day_formatted` по регламенту v3.0
+- `days=1` повторный: 2 сек, `cached=true`
+- `days=7`: 1:52, 7 дней × 3 приёма, ротация белков соблюдена (нет повторов 2 дня подряд), все продукты FODMAP-friendly
+**Что НЕ ОК (отдельные задачи):** калорийность стабильно занижена на 50-150 ккал (только 1/7 в коридоре ±50 от target) → тюнинг промпта в SM-08-TUNE. Длинные `days=7` блокируют worker на ~2 минуты, для after-payment лучше переехать на async → SM-08-ASYNC.
+**Инфра-правки на VPS** (НЕ в git, могут потеряться при апдейтах Supabase):
+- `main/index.ts` `workerTimeoutMs` 60s → 10 мин
+- `nginx /etc/nginx/sites-available/supabase` `proxy_read_timeout` 60s → 600s + `proxy_send_timeout 600s`
+- `kong.yml functions-v1`: `read_timeout: 600000`, `write_timeout: 600000` (default Kong=60s)
+- `ANTHROPIC_API_KEY` в `/opt/beget/supabase/.env` + проброс в `docker-compose.yml functions.environment`
+
+#### SM-07: Edge Function `generate-explanation-and-instruction` (Anthropic Haiku 4.5) + кеш `protocol_explanations` (17.05.2026)
+**Что сделано:** Edge Function принимает анонимный профиль (тот же формат, что в `menu_profiles`), возвращает пару `{ explanation, instruction }` от `claude-haiku-4-5`. Кеширует на 30 дней по ключу `protocol|diagnoses_sorted|hormonal_status` — большинство комбинаций повторяется у разных пользователей. RLS закрыт, доступ только service_role (EF). Системный промпт вшит из `system_prompt_explanation.md` v1. `extractJson()` fallback на случай если модель завернёт в markdown. UPSERT с `ON CONFLICT cache_key`.
+**Endpoint:** `POST https://uckuyoyubub.beget.app/functions/v1/generate-explanation-and-instruction`
+**Тело:** анонимный профиль (минимум: `protocol`)
+**Ответ:** `{ explanation, instruction, cached, model }`
+**Миграция:** `supabase/migrations/20260517_menu_protocol_explanations.sql` (применена 17.05.2026)
+**Файл EF:** `supabase/functions/generate-explanation-and-instruction/index.ts` (закопирован в `/opt/beget/supabase/volumes/functions/generate-explanation-and-instruction/`)
+**Коммит:** `e03f032` (на dev)
+**Тесты (FODMAP + ИР + менопауза, overweight):**
+- 1-й вызов: 17 сек, JSON валиден, оба поля заполнены (explanation 1647 симв, instruction 1618)
+- 2-й вызов: 0.67 сек, `cached:true`, `used_count` инкрементировался
+- Стиль: нет «является», «оптимальный», caps lock, тире — только дефис
+**Что НЕ ОК:** в `instruction` иногда capslock-заголовки («БАЗОВЫЕ ПРАВИЛА»), «инсулинрезистентность» вместо «инсулинорезистентность» → SM-07-TUNE.
 
 #### SM-05: Онбординг-квиз 5 шагов (16.05.2026)
 **Что сделано:** Самостоятельная страница `menu/quiz.html` (не трогает SPA `index.html`). 5 шагов (цель / тип питания / протокол / диагнозы / параметры тела), прогресс-бар, навигация вперёд-назад, валидация. localStorage-персистентность (`menu_quiz_state_v1`, `menu_anon_hash_v1`). `anonymizeProfile()` на клиенте: ИМТ-категория и age-group считаются локально, raw данные (рост/вес/возраст) хранятся только в Supabase на Beget. Тосты-описания протоколов на ⓘ. Защита диагнозов: «Ничего» взаимоисключающее. POST в `public.menu_profiles` через anon-key + PATCH-fallback на 409 (UNIQUE по hash). Готовый экран со сводкой. Аналитика (`menu_quiz_open/step/completed`). Палитра «пыльная роза», адаптив. **Фикс по ходу:** убран `Prefer: resolution=merge-duplicates` — он включал UPSERT-режим, для которого `anon` не имеет UPDATE-политики (по дизайну).
@@ -176,16 +209,18 @@ _Свободно. Следующее по приоритету — SM-07 (Edge 
 
 | ID | Задача | Приоритет | Зависит от |
 |----|--------|-----------|-----------|
-| SM-07 | Edge Function: generate-explanation-and-instruction (Anthropic haiku) | 🟠 | SM-05 ✅ |
-| SM-08 | Edge Function: generate-menu (Anthropic sonnet + JSON + валидация) | 🟠 | SM-04 ✅, SM-07 |
-| SM-09 | Экран превью: объяснение + день 1 без граммовок + finalize favorite_products из localStorage | 🟠 | SM-07 |
+| SM-09 | UI-экран превью: объяснение протокола (SM-07) + preview 1 дня меню (SM-08, `days=1`) + finalize favorite_products из localStorage | 🔴 | SM-07 ✅, SM-08 ✅ |
+| SM-08-TUNE | Тюнинг промпта `generate-menu`: калорийность стабильно занижена на 50-150 ккал (1/7 дней в коридоре ±50) — править системный промпт или калибровать target в EF | 🟠 | SM-08 ✅ |
+| SM-07-TUNE | Тюнинг промпта `generate-explanation-and-instruction`: убрать capslock-заголовки в `instruction`, добавить корректную форму «инсулинорезистентность» как пример | 🟡 | SM-07 ✅ |
 | SM-10 | Оплата Prodamus + webhook handle-payment | 🟠 | SM-09 |
-| SM-11 | Полное меню (7 дней) + PDF (html2pdf.js) | 🟠 | SM-08, SM-10 |
+| SM-11 | Полное меню (7 дней, `days=7`) + PDF (html2pdf.js) | 🟠 | SM-08 ✅, SM-10 |
+| SM-08-ASYNC | Async-обёртка для `days=7` после оплаты: новая таблица `menu_generation_jobs`, pg_cron worker дёргает Anthropic в фоне, email-уведомление через Resend (ключ уже в `.env`). Текущий sync блокирует worker на ~2 мин — для after-payment UX лучше «меню придёт на email через 5 минут» | 🟠 | SM-10 |
 | SM-12 | Блок БАД-рекомендаций (таблица protocol_bads) | 🟡 | SM-11 |
 | SM-13 | Апсейл: гайды → консультация (маппинг протокол → гайд) | 🟡 | SM-11 |
 | SM-14 | Форма «Книга предложений» (таблица menu_requests) | 🟡 | SM-03 ✅ |
 | SM-15 | protocol_products: заполнить amount_* по ИМТ (сейчас часть NULL) | 🟡 | SM-04 ✅ |
 | SM-16 | wishlist_text аналитика: dashboard «каких продуктов не хватает в БД» | 🟢 | SM-06 ✅ |
+| SM-INFRA-DOC | Зафиксировать в репо `supabase/` README про timeout-правки на VPS (workerTimeoutMs/nginx/kong) — они НЕ в git и могут потеряться при апдейтах self-hosted Supabase | 🟢 | SM-08 ✅ |
 
 ---
 
