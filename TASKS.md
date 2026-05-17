@@ -1,9 +1,9 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> **Последнее обновление: 17.05.2026** — SM-10 (Prodamus + async-генерация меню) на dev
+> **Последнее обновление: 17.05.2026** — SM-11/12/13/14 + SM-09-TUNE + SM-10 фиксы (PDF красивый, ссылки на бады, оплата стабильна) на dev. **Завтра — тестирование** Алексеем + новое задание от Claude.ai.
 >
 > Свежие записи — в начале раздела «🍽 СделайМеню → ✅ Выполнено» (ниже).
-> Блок «🧪 QA-отчёт сессии 09.05» — исторический архив прошлой сессии, не путать с текущим состоянием.
+> Блок «📜 Архив — QA-отчёт сессии 09.05» — исторический архив прошлой сессии, не путать с текущим состоянием.
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
@@ -121,6 +121,89 @@ _Свободно. Следующее по приоритету — **SM-10** (P
 ---
 
 ### ✅ Выполнено
+
+#### SM-10 fix (Prodamus do=pay) + SM-10 DEV-skip + SM-11/12/13/14 + SM-09-TUNE (пол) + result.html полный — большой воркфлоу-спринт (17.05.2026, dev only)
+**Контекст:** За одну сессию закрыли всю воронку от квиза до полноценного PDF-результата. Реальная Prodamus-оплата (Алексей открыл страницу), тестовый skip с симуляцией webhook, генерация Sonnet 7 дней, отрисовка дня по дню, БАДы с активными ссылками, апсейл гайд+консультация, форма «Книга предложений», поле пола в квизе. Пара критических багов поймана и закрыта на месте.
+
+**SM-10-fix-do-pay:** Первый клик «Получить меню» открывал текстом `https://payform.ru/lkbwnO9/` вместо страницы оплаты — причина: я в `buildPaymentUrl` поставил `do=link` (это API для получения короткой ссылки), а нужен `do=pay` + массив `products[0][name|price|quantity|type|sku]` как в `index.html` для гайдов. Переписал URL-builder по проверенному формату. Заодно: `urlNotification` явный (а не только глобально зарегистрированный в кабинете), `customer_extra` = клиентский orderId — fallback идемпотентности webhook. Память: [[prodamus-do-pay-not-link]].
+
+**SM-10 DEV-skip-payment EF:** Тестовый обход оплаты для прогона воркфлоу без денег. Открыть `https://dev.listoshenkov.ru/menu/preview.html?test_pay=1` → жёлтый баннер «TEST MODE» → клик «Получить меню» дёргает EF `dev-skip-payment`, которая строит fake-payload с правильным HMAC и шлёт в `prodamus-webhook`. Origin-проверка (только dev-домен → иначе 403). Перед симуляцией чистит старые devskip-следы для hash + кладёт свежий pending — чтобы webhook нашёл его и не плодил orphan-алерты в TG Алексею при повторных попытках. В preview.html при `test_pay=1` обходятся `get_purchase_status`/`upsert_pending_purchase` — даёт повторно тестировать после failed job. Не катать в прод.
+
+**SM-11+ RPC `get_menu_result` расширен:** одним вызовом возвращает `menu + protocol + goal + diet_type + diagnoses + hormonal_status + imt_category + age_group + sex + meal_count + target_calories`. Клиент result.html сам тянет `instruction/explanation_text` из `protocol_explanations` через `resolveCluster()` (та же логика fallback что в preview.html). Параллельно фикс бага в `DIAG_TO_CLUSTER`: `chronic_fatigue` → `fatigue` (квиз шлёт `fatigue`, в препарате был ключ для несуществующего значения — кластер `energetichesky` не резолвился).
+
+**SM-12 `protocol_bads`:** таблица + 12 наборов БАДов из брифа (cache_key=`<protocol>_<cluster>`, например `aip_autoimmun`, `lchf_metabolizm`, `wfpb_energetichesky`). RLS anon SELECT. Клиент использует тот же `resolveCluster()` для построения ключа, fallback-каскад: exact → одиночные кластеры → любой набор по протоколу.
+
+**SM-13 апсейл (гайд + консультация):** GUIDE_MAP с приоритетом диагнозов над протоколом. Цена и название тянутся из реальной `products` таблицы по slug (не хардкод). Slugs совпадают с каталогом: kishechnik 690₽, schitovidka 690₽, blokirovka-vesa 690₽, immunitet 690₽, osteoporoz 990₽, zhelezodeficit 1490₽ и др. Бриф SM-13 содержал диагнозы `chronic_fatigue`/`sleep` — в квизе таких нет (`fatigue` есть, `sleep` нет вообще), исправил по факту. Deep-link на гайд `?section=guide_<slug>`, на консультацию `?section=consultation`.
+
+**SM-14 «Книга предложений»:** Таблица `menu_requests` с RLS-замком (anon доступа нет). EF `book-request` — серверная валидация + INSERT + два канала уведомлений: TG-алерт в `@listoshenkov_nav_bot` Алексею + email на `listosha@list.ru` через Resend (HTML-вёрстка, reply_to = email пользователя — можно ответить из почтового клиента напрямую). Страница `menu/book.html` в пыльной розе с формой (description+email обязательные, параметры тела/диагнозы/ограничения/TG опционально). Ссылка из result.html «Мой случай сложнее — напишите Алексею».
+
+**SM-09-TUNE (пол в квизе):** Колонка `menu_profiles.sex text CHECK IN ('male','female')`. Шаг 5 квиза дополнен полем «Пол» (Женский / Мужской) рядом с приёмами пищи. В `generate-menu` EF: `sex` в cache_key (нормы белка муж +20%), в SYSTEM_PROMPT — блок «Учёт пола» (если `target_calories=null` — оценочные значения по imt_category × sex × goal). docs/system_prompt_menu_v2.md синхронизирован.
+
+**result.html переработан из placeholder в полный экран:**
+- Горизонтальные табы дней (на экране — только активный, в PDF — все)
+- Markdown-парсер `day_formatted` (# → h2, ** → strong, ___ → hr, два пробела → br)
+- Блок про протокол (используется `explanation_text`, см. подвох ниже)
+- Блок БАДов с **активными ссылками на каждый бад** через `?section=supp_<id>` (29 из 40 БАДов автоматически замэтчены по supplements.name через ILIKE-скрипт `link_bads_to_supplements.py`; остальные 11 — fallback `?section=pills&q=<слово>`)
+- Блок гайда + консультация (deep-link)
+- Кнопка PDF (html2pdf.js, lazy-load CDN) и «Поделиться» (navigator.share + clipboard fallback)
+- Ссылка на book.html «Мой случай сложнее»
+- 5 состояний экрана: loading / empty_hash / not_found / pending→hold / failed / ready
+- Контактный блок везде: TG (`@listosha`) + MAX + email (`listosha@list.ru`) — тот же паттерн что в Консультации `index.html`
+
+**PDF красивый и мобильный (правки по фидбеку):**
+- `html2canvas { windowWidth: 480, width: 480 }` — DOM рендерится с мобильным viewport, CSS @media max-width:480px применяется → правая сторона больше не обрезана
+- A4 portrait, compressed
+- `enableLinks: true` — все `<a href>` кликабельны в PDF (поверх растрового рендера накладываются hyperlink-аннотации)
+- `page-break-before` на `.day-block` / `.bads-block` / `.upsell-block` — каждый смысловой блок отдельной страницей (как Алексей просил)
+- `.consultation-block` с `page-break-inside: avoid` — гайд и консультация на одной странице, не разрываются
+- `.pdf-mode` CSS rework: убраны box-shadow, скрыты UI-only элементы (r-hero, r-tabs-wrap, r-actions, r-book-link-block)
+
+**`index.html` (production-затрагивает!):** Добавлена поддержка `?section=pills&q=<запрос>` — устанавливает значение в `pillSearch` и вызывает `filterPills` после загрузки `suppLoaded`. Минимальная правка вокруг строки `param === 'pills'`. Используется result.html для fallback-ссылок на БАДы. На прод поедет вместе с SM-MERGE.
+
+**hold.html прогресс-бар переделан:**
+- Раньше: stage-привязка 3%→25%→80%→полка (рывки + долгое стояние)
+- Теперь: **линейный crawl от 3% к 90% за 10 минут**, плавно. На `ready` — рывок 100%. Лучше не дойти, чем стоять.
+- Текст «обычно 2-3 минуты» → «обычно укладываемся за 5-10 минут, можно закрыть вкладку — пришлём письмо»
+
+**Sandbox-тесты:** SM-11..14 31/31 ✓ (`supabase/scripts/test_sm11_14.py`), SM-10 регрессии 32/32 ✓. Покрывают: RPC расширение, protocol_bads SELECT, book-request happy+validation+RLS, CHECK на sex.
+
+**Реальный E2E подтверждён Алексеем 17.05.2026:**
+- ✓ Квиз с полом → запись `sex=male` в `menu_profiles`
+- ✓ Реальный клик «Получить меню» — открывается Prodamus с товаром и ценой 1200₽
+- ✓ TEST_pay режим — fake-webhook → job → generate-menu (после фикса max_tokens) → ready
+- ✓ Письмо «меню готово» прилетело на email через Resend
+- ✓ result.html — меню по дням отрисовано, БАДы видны, контакты Алексея на месте
+- ✓ TG-алерты приходят в `@listoshenkov_nav_bot` (curl-smoke + реальные orphan/failed-алерты)
+
+**Найдённые и пофикшенные баги по ходу теста:**
+- **MAX_OUTPUT_TOKENS=16000** в Sonnet — мало для 7 дней меню, ответ обрезался → JSON битый → job failed → $0.30 в трубу. Поднял до **32000**, повторный прогон прошёл.
+- **menu_profiles.protocol=NULL** когда юзер в квизе выбрал «Не знаю» — EF выбирал базовый (`mediterranean`), но в БД не сохранял → cache_key в result.html был сломан, инструкция и БАДы не подгружались. Фикс в двух местах: (а) `runMenuGeneration` после успешной генерации делает UPDATE `menu_profiles.protocol`; (б) клиентский `resolveProtocolFallback()` в result.html для уже сгенерированных меню.
+- **«Подробной инструкции для этой комбинации пока нет»** → корень: все 121 `instruction_text` в `protocol_explanations` = placeholder `"(pregenerated)"`. SM-09b заливал только `explanation_text`. Решение: показываем `explanation_text` под заголовком «📋 Про твой протокол», блок скрывается полностью если и оно пусто. На будущее — SM-15 ниже.
+- **PDF: правая сторона обрезана** — исправлено через `windowWidth: 480` в html2canvas + полная переделка `.pdf-mode` CSS.
+- **«TG не пришло»** check после первого SM-10 — оказалось пришло, я просто не настроил smoke. Curl-smoke + 3 реальных orphan/failed-алерта подтверждены Алексеем.
+- **Кнопка «На страницу СделайМеню» в book.html → 403** — на dev-VPS нет `index.html` в `/var/www/dev/menu/`, nginx без autoindex даёт 403. Создал `menu/index.html` с meta-refresh + JS-redirect на `listoshenkov.ru/menu/`. Решает проблему для всех `/menu/` ссылок разом.
+- **Неправильный handle:** везде в menu/-страницах был `@listoshenkov`, реально — `@listosha`. Поправил.
+
+**Артефакты:**
+- Миграции: `20260517_sm11_get_menu_result_expanded.sql`, `20260517_protocol_bads.sql`, `20260517_menu_requests.sql`
+- EF новые/обновлённые: `book-request`, `dev-skip-payment`, `prodamus-webhook` (расширен меню-веткой), `generate-menu` (max_tokens 32k + блок про пол)
+- Фронт: `menu/result.html` (полный rework), `menu/book.html` (новый), `menu/hold.html` (прогресс-бар), `menu/preview.html` (test_pay + новый buildPaymentUrl), `menu/index.html` (redirect-stub), `menu/quiz.html` (поле sex), `index.html` (поддержка `?q=` в pills)
+- Скрипты: `supabase/scripts/test_sm11_14.py`, `supabase/scripts/test_sm10.py`, `supabase/scripts/link_bads_to_supplements.py`
+- docs: `system_prompt_menu_v2.md` синхронизирован с EF
+
+**Коммиты на dev:** 554c9b0 (do=pay) → f0fdfb0 (SM-11..14 + sex) → 4ed3e37 (dev-skip-payment) → 63cea7d (max_tokens 32k + контакты) → bc1ac58 (progress + protocol-fix + book-email) → 793c749 (PDF mobile + bad-links). SM-MERGE-DEV-TO-PROD ждёт явное «ок».
+
+**Открытые задачи в бэклог (созданы по ходу):**
+- **SM-15** (новая): залить реальные `instruction_text` для 121 записи `protocol_explanations` (сейчас все = `"(pregenerated)"`). Можно через генерацию Claude.ai партиями. До этого — result.html показывает `explanation_text` как fallback.
+- **SM-08-TUNE-2:** `target_calories` в `menu_profiles` сейчас всегда `NULL` (ни квиз, ни EF не считают). Промпт обещает «±50 ккал» от значения, которого нет. Также: в `generate-menu` в Anthropic уходят raw `height_cm`/`weight_kg`/`age` — нарушает SM-03 принцип «raw остаётся в РФ-БД». Решение: рассчитывать target в EF по Mifflin-St Jeor (все нужные данные теперь есть включая sex) и чистить raw из payload перед AI.
+- **SM-12-EXT:** 11 БАДов не в `supplements` каталоге (Берберин, L-глутамин, Куркумин с пиперином, Витамин C 500-1000мг, Электролиты, Омега-3 EPA+DHA, B12 метилкобаламин, Омега-3 из водорослей и др.) — открываются через ?q= поиск как fallback. Алексей решает: завести их в навигатор или оставить как есть.
+- **На прод (SM-MERGE):** перед мержом dev→main удалить `supabase/functions/dev-skip-payment/` + блок `if (testPayMode)` в preview.html. Или оставить — EF защищена origin-проверкой `dev.listoshenkov.ru`, на проде не сработает (но лишний код).
+
+**На завтра у Алексея (18.05.2026):**
+1. Тестирование всего флоу на dev: квиз→корзина→preview→test_pay→hold (прогресс плавный)→result→PDF (мобильный, правая сторона не обрезана, ссылки кликаемые)→book.html.
+2. Новое задание от Claude.ai — Алексей пришлёт.
+
+---
 
 #### SM-10: оплата Prodamus + асинхронная генерация меню (17.05.2026, dev only)
 **Что сделано:** Полноценная воронка оплаты под СделайМеню. preview → Prodamus → hold (polling) → result. Webhook-логика встроена в существующий `prodamus-webhook` EF через ранний guard — у Prodamus один webhook URL на магазин, регистрировать ничего не надо.
