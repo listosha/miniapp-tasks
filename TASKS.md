@@ -108,7 +108,7 @@ quiz_discount_shown/clicked, landing_game_started/completed, welcome_banner_land
 _Свободно. Следующее по приоритету — **SM-10** (Prodamus + webhook handle-payment) или **SM-08-ASYNC** (async-обёртка для days=7 с email-уведомлением)._
 
 #### SM-MERGE-DEV-TO-PROD: квиз + корзина + превью + payment-soon в прод 📋 ждёт явное «ок»
-**Контекст:** На dev всё работает: SM-05 квиз ✅, SM-06 корзина ✅, SM-07/08 EF ✅ (уже в общем self-hosted Supabase, обслуживают и dev и prod), SM-09 превью ✅ (Алексей подтвердил «первично всё работает» 17.05.2026). Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026, см. auto-memory `dev_first_then_prod`).
+**Контекст:** На dev всё работает: SM-05 квиз ✅, SM-06 корзина ✅, SM-07/08 EF ✅ (уже в общем self-hosted Supabase), SM-09 превью ✅, SM-09b/c/d/e/f — AI-free preview + diet-фильтр + крупнее шрифты ✅. После сессии 17.05.2026 преview полностью без AI до оплаты ($0/preview), всё на статичных SELECT'ах из protocol_explanations/protocol_sample_menus. Не мержим в прод без явной команды от Алексея (правило сессии 16.05.2026, см. auto-memory `dev_first_then_prod`).
 **Что включает merge:**
 - Merge `miniapp` dev → main → деплой `menu/quiz.html`, `menu/basket.html`, `menu/preview.html`, `menu/payment-soon.html` на `app.listoshenkov.ru`
 - Замена CTA на `listoshenkov.ru/menu/`: сейчас ведёт на `app.listoshenkov.ru/?ref=landing_menu` (SPA), должна вести прямо на `app.listoshenkov.ru/menu/quiz.html?ref=landing_menu`
@@ -118,6 +118,38 @@ _Свободно. Следующее по приоритету — **SM-10** (P
 ---
 
 ### ✅ Выполнено
+
+#### SM-09b/c/d/e/f: AI-free preview + фильтр по diet_type + крупнее шрифты (17.05.2026)
+**Что сделано (по итогам длинной сессии 17.05):** Полностью убрали Anthropic с preview-экрана, добавили базы пред-сгенерированных текстов и примеров, разобрались с веган/вегетарианец/пескатарианец-фильтрами и оптимизацией UX.
+
+**SM-09b: explanation из БД, не из Haiku.** Раньше preview вызывал EF generate-explanation-and-instruction (~17 сек, $0.02). Теперь — SELECT из `protocol_explanations` по cache_key `<protocol>_<cluster_key>`. Залит CSV от Алексея + Claude.ai: **121 объяснение** (10 протоколов × 12 кластеров + universal menopause_addon). resolveCluster на клиенте: gut_issues/candida→gjkt, ir/obesity/pcos→metabolizm, hashimoto/weak_immunity→autoimmun, chronic_fatigue/underweight→energetichesky, menopause-diag→gormonalny, joints/osteoporosis→oporno. Каскад fallback: exact → одиночные части композита → net_diagnozov → menopause_addon. Add-on про менопаузу подмерживается если hormonal_status=menopause. Открыт RLS SELECT для anon (миграция `20260517_protocol_explanations_anon_select.sql`). Файлы: `supabase/seeds/protocol_explanations_v2.csv`, `protocol_explanations_seed_v2.sql`. **Эффект:** −$0.02/preview, instant.
+
+**SM-09c: sample-меню из БД, не из Sonnet.** Раньше Preview вызывал generate-menu days=1 (~28 сек, $0.15). Теперь — SELECT из `protocol_sample_menus` по cache_key `<protocol>_<goal>`. Залит CSV: **28 примеров** (7 живых протоколов × 4 цели maintain/lose/gain/therapeutic). Структура `sample_json`: 3 приёма (🥐🍽🍲) × 4-6 продуктов в каждом, БЕЗ граммовок и КБЖУ. Динамический подзаголовок «Пример по протоколу X с целью Y. Полное меню под N приёмов + параметры тела — после оплаты». Loading упрощён (нет фейк-прогресса на 30 сек). Миграция `20260517_protocol_sample_menus.sql`, seed `protocol_sample_menus_v1.csv` + `_seed_v1.sql`. EF generate-menu остаётся для days=7 после оплаты. **Эффект:** −$0.15/preview = **полный $0 до оплаты**, <1 сек ответ.
+
+**SM-09d: фильтр продуктов по diet_type.** Алексей: вегетарианцу в корзине показывали курицу/рыбу/яйца. Миграция `20260517_protocol_products_animal_origin.sql`: добавлена колонка `animal_origin` (plant/dairy/eggs/fish/meat) с автоматической разметкой через regex по product_name + CHECK + индекс. Залит расширенный CSV от Алексея `protocol_products_vegan_vegetarian.sql` (132 продукта: wfpb +65 крупы/бобовые/тофу, pescatarian +67 рыба+растительные). Финальное распределение: wfpb 95 plant (100%), pescatarian 34 plant + 22 fish + 7 dairy + 4 eggs (без meat). Фильтр в 3 слоя:
+- `menu/basket.html`: `fetchProducts(protocol, dietType)` с REST-фильтром `&animal_origin=in.(...)`, для vegan принудительно protocolKey=wfpb (95 растительных vs 11 в lchf)
+- `supabase/functions/generate-menu`: `.in('animal_origin', allowedOrigins)`, для vegan productProtocol=wfpb
+- `menu/preview.html`: `filterSampleByDiet(sample, dietType)` на клиенте — отфильтровывает item'ы в sample_menus которые не подходят. Если в приёме осталось <2 продукта → fallback на `wfpb_<goal>` или `wfpb_maintain`. **Дисклеймер для веганов убран** по требованию Алексея — образец сразу правильный
+Поправлены 3 аномалии разметки: «Сельдерей» (был fish → plant), «Яйца варёные в wfpb» (DELETE), «Яйца куриные варёные в pescatarian» (был meat → eggs).
+
+**SM-09e: растительный протеин + контроль белка для веганов.** Залит `protocol_products_plant_proteins.sql`: 11 порошковых протеинов (7 wfpb + 4 pescatarian: гороховый, рисовый, конопляный, тыквенный, подсолнечный, соевый изолят, смесь). В системный промпт EF generate-menu вшит блок «СПЕЦИАЛЬНОЕ ПРАВИЛО: контроль белка» из `system_prompt_menu_v2.md`: норма по imt_category (normal=60г, overweight=75г, obese=90г, underweight=50г), при недоборе добавить 25г растительный протеин (приоритет: смесь→гороховый), пересчитать итоги, исключение при goal=therapeutic. В `preview.html` добавлена карточка «💪 Контроль белка» (видна только для veg/vegan/pescatarian) — объясняет что в полном меню добивается белок.
+
+**SM-09f: фиксы по итогам тестирования.**
+- auto-add в басете теперь учитывает `animal_origin` (двойной safety: REST-фильтр + клиентская проверка через `_userDietType`), `rollUpProducts` проносит animal_origin в PRODUCTS
+- PREVIEW_CACHE_KEY v6→v7: у пользователя в localStorage висел старый payload с `{sampleMenu: null}` ещё до заливки sample_menus
+- Шрифты крупнее на мобильном (Алексей: «весь текст мелкий»): в quiz.html все ключевые элементы +2pt; в preview.html 26 правок (p-desc/card-body/accordion-body/meal-item: 15→17, плашки auto-pick/protein/instruction: 13.5→15, sticky-CTA, email-form, etc.); в payment-soon (7 правок) и basket-результат (5 правок) аналогично
+
+**Stable стоимость воронки:** до оплаты 100% AI-free, после оплаты Sonnet 4.6 для days=7 (~$0.15 однократно, кеш 14 дней по profile).
+
+**Открытые задачи отдельно:**
+- ловушки (`is_trap=true`) в protocol_products для vegan/vegetarian не размечены (там 0 записей с is_trap, но если в будущем добавим — учесть)
+- sample-меню сейчас гранулярность protocol×goal; для veg* фильтруется на клиенте. При желании — расширить до protocol×goal×diet_type (112 записей)
+- остаётся бэклог: SM-10 (Prodamus), SM-08-ASYNC (jobs+email), тюнинг промптов
+
+**Коммиты в `miniapp/dev`:** 7d2b5f7 (cluster explanations) → ed1cca3 (v2 ext) → adb84e0 (senior toggle) → 17af84f (sample table) → 819bf6f (sample preview) → d711227 (sample seed) → 8f6a6c0 (diet filter) → 75e0a72 (client diet filter) → 59486fe (proteins + prompt v2) → e8e157d (protein note) → 048dbdc (auto-add safety + fonts quiz) → e1b7763 (fonts preview/basket/payment).
+**Артефакты:** `supabase/seeds/` — все CSV+SQL для перезаливки, `docs/system_prompt_menu_v2.md`, `docs/explanations_generation_brief.md`, `docs/sample_menus_generation_brief.md`.
+
+---
 
 #### SM-09: UI-экран превью (объяснение + меню 1 день без граммовок) + заглушка payment-soon (17.05.2026)
 **Что сделано:** Самостоятельная страница `menu/preview.html` в палитре «пыльная роза». Финальное звено бесплатного онбординга: квиз → корзина → превью → (оплата). Использует SM-07 (объяснение) и SM-08 (preview 1 дня) параллельно через `Promise.all` — суммарное ожидание = max(28с, 17с) вместо последовательного сложения.
@@ -233,6 +265,8 @@ _Свободно. Следующее по приоритету — **SM-10** (P
 | SM-09-TUNE | Правки промптов explanation/menu по результатам тестирования (от Алексея, накопить пакетно — capslock, орфография, калорийность ±50, формулировки) | 🟠 | SM-09 ✅ |
 | SM-08-TUNE | Тюнинг промпта `generate-menu`: калорийность стабильно занижена на 50-150 ккал (1/7 дней в коридоре ±50) — править системный промпт или калибровать target в EF | 🟠 | SM-08 ✅ |
 | SM-07-TUNE | Тюнинг промпта `generate-explanation-and-instruction`: убрать capslock-заголовки в `instruction`, добавить корректную форму «инсулинорезистентность» как пример | 🟡 | SM-07 ✅ |
+| SM-09c-EXT | Расширить protocol_sample_menus до 112 записей (protocol×goal×diet_type вместо текущих 28 protocol×goal) — пока для veg* sample фильтруется на клиенте | 🟢 | SM-09c ✅ |
+| SM-09d-FMD | Заполнить protocol_products для FMD / Противовоспалительный — explanation для них уже в БД, но продуктов нет → EF generate-menu вернёт no_products | 🟢 | SM-09d ✅ |
 | SM-10 | Оплата Prodamus + webhook handle-payment | 🟠 | SM-09 |
 | SM-11 | Полное меню (7 дней, `days=7`) + PDF (html2pdf.js) | 🟠 | SM-08 ✅, SM-10 |
 | SM-08-ASYNC | Async-обёртка для `days=7` после оплаты: новая таблица `menu_generation_jobs`, pg_cron worker дёргает Anthropic в фоне, email-уведомление через Resend (ключ уже в `.env`). Текущий sync блокирует worker на ~2 мин — для after-payment UX лучше «меню придёт на email через 5 минут» | 🟠 | SM-10 |
