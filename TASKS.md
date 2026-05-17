@@ -1,13 +1,16 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> Обновлено: 17.05.2026
+> **Последнее обновление: 17.05.2026** — SM-10 (Prodamus + async-генерация меню) на dev
+>
+> Свежие записи — в начале раздела «🍽 СделайМеню → ✅ Выполнено» (ниже).
+> Блок «🧪 QA-отчёт сессии 09.05» — исторический архив прошлой сессии, не путать с текущим состоянием.
 >
 > ПРАВИЛО: CC читает этот файл в начале каждой сессии.
 > После выполнения задачи — обновляет статус и коммитит.
 
 ---
 
-## 🧪 QA-отчёт сессии 09.05.2026
+## 📜 Архив — QA-отчёт сессии 09.05.2026
 
 **Статус:** ✅ Все блоки пройдены (8 блоков, 50+ проверок)
 
@@ -118,6 +121,54 @@ _Свободно. Следующее по приоритету — **SM-10** (P
 ---
 
 ### ✅ Выполнено
+
+#### SM-10: оплата Prodamus + асинхронная генерация меню (17.05.2026, dev only)
+**Что сделано:** Полноценная воронка оплаты под СделайМеню. preview → Prodamus → hold (polling) → result. Webhook-логика встроена в существующий `prodamus-webhook` EF через ранний guard — у Prodamus один webhook URL на магазин, регистрировать ничего не надо.
+
+**Миграция `20260517_menu_purchases_jobs.sql`:**
+- `menu_purchases` — журнал оплат. UNIQUE `prodamus_order_id` (идемпотентность webhook). Partial UNIQUE `(profile_hash) WHERE status='pending'` — один pending на hash. RLS: service_role + anon INSERT(pending) с строгим CHECK.
+- `menu_generation_jobs` — FSM `pending → generating → ready | failed`, привязан к `purchase_id`, хранит `menu_json` (jsonb).
+- 4 RPC SECURITY DEFINER (anon-friendly через REST `/rpc/`):
+  - `get_purchase_status(hash)` — для preview, защита от двойной оплаты
+  - `upsert_pending_purchase(hash, email, amount)` — создаёт/апдейтит pending перед редиректом в Prodamus (с валидацией email regex и hash 16-128 симв)
+  - `get_menu_status(hash)` — для hold.html polling, возвращает только статус без menu_json
+  - `get_menu_result(hash)` — для result.html, отдаёт menu_json только при status='ready'
+
+**EF `prodamus-webhook` расширен:** после верификации подписи и проверки `payment_status="success"` — ранний guard: если `_param_product='menu_7d'` или есть `_param_profile_hash`, идёт в `handleMenuPurchase()`. Гайд-логика не тронута. Менюшная ветка:
+1. Идемпотентность через UNIQUE prodamus_order_id
+2. Каскад поиска pending: hash → email → orphan (новая запись задним числом + TG-алерт)
+3. Перевод purchase в `paid`, создание `menu_generation_jobs(pending)`
+4. Fire-and-forget `runMenuGeneration()` через `EdgeRuntime.waitUntil` — вызов generate-menu(days=7), статус job апдейтится в фоне, по ready отправляется email через Resend
+5. TG-алерты Алексею через `ADMIN_TELEGRAM_ID=788984484` + `TELEGRAM_BOT_TOKEN` (`@listoshenkov_nav_bot`) — orphan, failed-генерация, критические DB-ошибки
+
+**Frontend (dev):**
+- `menu/preview.html`: 4 шага CTA — PATCH email в menu_profiles → `get_purchase_status` → `upsert_pending_purchase` → buildPaymentUrl + redirect. Если уже paid → редирект в result. Без hash → возврат в quiz. Цена: 1200 ₽ полная, 600 ₽ senior (передаётся в `_item_price_1` и `amount` pending-записи).
+- `menu/hold.html`: новый экран ожидания. Polling RPC каждые 7 сек, плавный creep-прогресс (pending 25% → generating 80% → ready 100%), толерантность 42 сек к not_found (Prodamus иногда отстаёт на 5-15 сек после redirect), 4 состояния: wait / ready (auto-redirect в result) / failed / not_found. Email из URL/localStorage в плашке «Закрыть и ждать письмо».
+- `menu/result.html`: placeholder с отрисовкой `day_formatted` (мини markdown→HTML парсер: # → h2, ** → strong, ___ → hr, два пробела → br). Status-каскад: ready → меню / pending → автoredirect в hold / failed → ошибка с поддержкой / not_found → ссылка в TG / empty_hash → «ссылка повреждена». Banner про скоро-PDF.
+
+**Sandbox-тесты (32/32 ✓):** `supabase/scripts/test_sm10.py`. Покрытие:
+- T1-T2: невалидная/отсутствующая подпись → 403
+- T3: payment_status=cancelled → 200, без записи
+- T4: happy path — pending по hash → paid + job создан
+- T5: дубль order_id → 200, второй записи нет
+- T6: orphan (профиль не найден) → paid-запись создана + TG-алерт пришёл Алексею (визуально подтверждено)
+- T7: fallback по email — hash неверный, найден pending по email
+- T8-T11: все 4 RPC (valid + invalid_hash + invalid_email + already_paid + not_found)
+- T12: partial UNIQUE на pending — повторный upsert = update, одна запись
+- T13: sign в body не ломает verify (поле исключается перед подсчётом hmac)
+
+**Что НЕ покрыто в тестах (стоят денег):** реальный вызов generate-menu (~$0.15/прогон) и реальный платёж через Prodamus. Это — на живом тестовом платеже Алексея на dev.
+
+**Артефакты:** `supabase/migrations/20260517_menu_purchases_jobs.sql`, расширение `supabase/functions/prodamus-webhook/index.ts` (+275 строк), `menu/hold.html` (новый), `menu/result.html` (новый), `menu/preview.html` (правка onCtaClick), `supabase/scripts/test_sm10.py` (новый).
+
+**Коммиты:** `24f8441` (первоначальный SM-10 с отдельной handle-payment EF), `0bce862` (рефактор: всё в prodamus-webhook, handle-payment удалена). На dev. SM-MERGE-DEV-TO-PROD ждёт явное «ок».
+
+**Открыто отдельно:**
+- регистрация nginx-route для menu@listoshenkov.ru у Resend (sender domain verification — если ещё не настроен)
+- ЛК с историей покупок (SM-11)
+- полноценный result.html с PDF/печатью (SM-11)
+
+---
 
 #### SM-09b/c/d/e/f: AI-free preview + фильтр по diet_type + крупнее шрифты (17.05.2026)
 **Что сделано (по итогам длинной сессии 17.05):** Полностью убрали Anthropic с preview-экрана, добавили базы пред-сгенерированных текстов и примеров, разобрались с веган/вегетарианец/пескатарианец-фильтрами и оптимизацией UX.
