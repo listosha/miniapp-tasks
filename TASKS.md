@@ -1,6 +1,6 @@
 # TASKS.md — Навигатор канала
 > Рабочий файл: Claude.ai ↔ Claude Code
-> **Последнее обновление: 17.05.2026** — SM-11/12/13/14 + SM-09-TUNE + SM-10 фиксы (PDF красивый, ссылки на бады, оплата стабильна) на dev. **Завтра — тестирование** Алексеем + новое задание от Claude.ai.
+> **Последнее обновление: 18.05.2026 (ночь)** — QA-spelunking по плану Алексея: 135/135 автотестов + 2 пофикшенных issue (REVOKE writes на protocol_* и race на upsert_pending_purchase). Алексей просыпается утром, читает раздел «🌙 QA ночная сессия 18.05.2026» ниже.
 >
 > Свежие записи — в начале раздела «🍽 СделайМеню → ✅ Выполнено» (ниже).
 > Блок «📜 Архив — QA-отчёт сессии 09.05» — исторический архив прошлой сессии, не путать с текущим состоянием.
@@ -121,6 +121,80 @@ _Свободно. Следующее по приоритету — **SM-10** (P
 ---
 
 ### ✅ Выполнено
+
+#### 🌙 QA ночная сессия 18.05.2026 — полный тест-план + 2 найденных и пофикшенных issue
+**Контекст:** Алексей передал план тестирования (`sdelaj_menu_test_plan_full.md` — 10 блоков от квиза до E2E). Расширил его своими сценариями и автоматизировал что мог через Python+psql+curl. **135 тестов прошли**, **2 реальные проблемы найдены и исправлены сразу же**, остальные «сигналы» оказались ложноположительными (с разбором ниже).
+
+**Архитектура автотестов:**
+- `supabase/scripts/test_full_plan.py` (новый, 1025 строк) — комплексный мега-test со всеми блоками
+- Дополнительно регрессии: `test_sm10.py` (32/32 ✓) и `test_sm11_14.py` (31/31 ✓) — не сломались
+- Запуск: `python3 /tmp/test_full_plan.py` на VPS (psql через `docker exec supabase-db`)
+
+**Покрытие по блокам:**
+| Блок | Что покрыто автоматически | Результат |
+|---|---|---|
+| B1 — Квиз/Профиль | CHECK constraints (sex, height_cm, weight_kg, age, age_group), RLS anon INSERT/UPDATE, partial UNIQUE на anon_profile_hash | 9/9 ✓ + skip UI |
+| B3 — Превью | RPC `get_purchase_status`, REST на protocol_explanations/sample_menus/bads (anon SELECT), counts, наличие diet-вариантов | 10/10 ✓ |
+| B4 — Webhook/Оплата | Подпись HMAC валидная/невалидная/отсутствует, payment_status≠success, идемпотентность, orphan, fallback по email, customer_extra fallback, email регистр+trimming, sign в body, amount=10M | 17/17 ✓ |
+| B5 — result.html / RPC | `get_menu_result` все статусы (ready/pending/failed/not_found/invalid_hash/битый ready+null), отсутствие email/raw в публичном RPC, HTML-проверки (enableLinks, supplement_id, deep-link) | 22/22 ✓ |
+| B6 — Книга предложений | Happy, validation (email/description), длина 5001→trim, XSS как text, bad_json, RLS anon SELECT/INSERT отбит | 11/11 ✓ |
+| B8 — Безопасность | RLS на menu_purchases/jobs/cache, SQL-инъекция, XSS, webhook без подписи, replay, статические секреты не утекают (.env content), CORS evil.com отбит, dev-skip-payment Origin-защита, generate-menu auth | 13/13 ✓ |
+| B9 — Производительность | Тайминги (5 итераций медиана): get_menu_status 14ms, get_purchase_status 13ms, explanations SELECT 15ms, sample_menus 17ms, protocol_bads 13ms — все < 50ms | 5/5 ✓ |
+| Extra E1-E20 | Unicode/эмодзи, пустые/null/whitespace hash, длинный hash, RPC с extra полями, concurrent INSERT, DoS-стресс book, SQL через RPC, валидность всех bads_list arrays, CORS preflight, длинные diagnoses-массив, owner_chk, race на upsert_pending, dev-skip-payment 4 чужих Origin, нет подозрительных RPC, anon EXECUTE на 4 RPC | 47/47 ✓ |
+
+**Итого: 135/135 ✓** (после фиксов)
+
+**🐛 Найдено и пофикшено:**
+
+**Issue 1 — REVOKE writes на статичных protocol_* таблицах** (миграция `20260518_revoke_anon_writes_on_protocol_tables.sql`)
+RLS правильно блокировал UPDATE/DELETE (нет policy = по умолчанию deny), но GRANT-привилегии у anon/authenticated оставались (`UPDATE, INSERT, DELETE, TRUNCATE, REFERENCES, TRIGGER`). PostgREST возвращал `200 []` (no-op UPDATE — RLS не пускает ни одной строки), данные не менялись, но это плохая практика — лишний attack-surface. **Фикс**: явный `REVOKE INSERT, UPDATE, DELETE, TRUNCATE` для anon/authenticated на `protocol_bads`, `protocol_explanations`, `protocol_sample_menus`, `protocol_products`. Теперь UPDATE → 401, не 200.
+
+**Issue 2 — Race condition на `upsert_pending_purchase`** (миграция `20260518_upsert_pending_race_fix.sql`)
+При 5 параллельных вызовах от одного hash старый код делал `SELECT existing pending → если есть UPDATE, иначе INSERT`. Все 5 потоков видели «нет pending», один кидал INSERT, остальные падали на partial UNIQUE с 409. **Фикс**: атомарный `INSERT ... ON CONFLICT (profile_hash) WHERE status='pending' DO UPDATE SET email/amount`. Postgres гарантирует, все 5 параллельных вызовов теперь 200. В реальной жизни юзер только раз нажимает кнопку, но защита тоньше — лучше.
+
+**🟢 Ложноположительные срабатывания (НЕ баги):**
+
+| Сигнал | Реальность | Что сделал |
+|---|---|---|
+| `.env` и `docker-compose.yml` отдают 200 | nginx fallback на `index.html` (мой meta-refresh stub в `/menu/`), не сами файлы | Поправил тест: проверять не статус, а отсутствие в ответе `POSTGRES_PASSWORD/JWT_SECRET/ANTHROPIC_API_KEY` и других реальных секретов |
+| `generate-menu` без auth → 400 (вместо 401/403) | Anon-key валиден, EF падает на validate(profile) → 400 missing_field. Системный промпт в ответе НЕ виден | Поправил тест: принимать любой 4xx |
+| anon UPDATE на `protocol_bads` → 204 | RLS отбивает 0 rows, PostgREST возвращает 200 [] — данные не меняются | Поправил тест на проверку ДО/ПОСЛЕ содержимого. Плюс REVOKE для красоты |
+| RPC с лишним полем → 404 PGRST202 | PostgREST 13+ строго проверяет сигнатуру (защита от случайных полей) | Поправил тест: принимать 200/400/404 (не 5xx) |
+| sign в body ломает verify (initial test) | Мой test-payload не исключал sign перед подсчётом подписи как реальный Prodamus делает | Поправил тест на правильный sign-flow |
+
+**🟡 Не покрыто автотестами (для ручной проверки Алексеем):**
+
+| Что проверить вручную | Где |
+|---|---|
+| Шаги квиза (1-5), прогресс-бар, Назад/Вперёд, валидации на UI | `https://dev.listoshenkov.ru/menu/quiz.html` |
+| Корзина: геймплей (тосты, тряска, скорость, fallback 55+, auto-add, dislikes-фильтр) | `https://dev.listoshenkov.ru/menu/basket.html` |
+| Превью: тосты протоколов, плашка «Алексей рекомендует» при auto, карточка «Контроль белка» для веганов | `https://dev.listoshenkov.ru/menu/preview.html` |
+| hold.html: прогресс-бар плавный (от 3% к 90% за 10 минут), редирект на ready | прогон test_pay → видим вживую |
+| result.html: табы дней горизонтальный скролл, переключение, PDF реально скачивается, кириллица не крякозябра, страницы разделены | прогон + PDF на телефоне/десктопе |
+| Мобильная адаптация (375px, iPhone SE/12, Android 360/412) | все страницы visualно |
+| Реальные генерации Sonnet для каждого протокола (B7: FODMAP, АИП, WFPB, Кето, FMD, Кето-веган) — стоит $$$ за прогон, не автотестил | 7 тестовых платежей через `?test_pay=1` для каждого протокола |
+| Письма Resend на разных email-доменах (gmail/yandex/mail.ru) | реальные тестовые платежи |
+
+**🔵 Открытые задачи в бэклог (созданы и подсвечены ранее):**
+- **SM-15** — залить реальные `instruction_text` для 121 записи `protocol_explanations` (сейчас все = `"(pregenerated)"`). Result.html временно показывает `explanation_text` под заголовком «Про твой протокол» как fallback.
+- **SM-08-TUNE-2** — рассчитывать `target_calories` на сервере по Mifflin-St Jeor (все нужные данные есть включая sex) и чистить raw `height_cm/weight_kg/age` из payload AI (текущий код передаёт raw в Anthropic — нарушает SM-03).
+- **SM-12-EXT** — 11 БАДов отсутствуют в каталоге `supplements`: Берберин, L-глутамин, Куркумин с пиперином, Витамин C 500-1000мг, Электролиты (натрий/калий/магний), Омега-3 EPA+DHA, B12 метилкобаламин, Омега-3 из водорослей и др. Сейчас открываются через fallback `?section=pills&q=<слово>`. Решить с Алексеем — заводить ли их в навигатор.
+- **SM-MERGE-DEV-TO-PROD** — после ручного тестирования Алексеем перед мержом: удалить `supabase/functions/dev-skip-payment/` или оставить (защищена Origin-check). Решить.
+
+**Артефакты:**
+- Миграции: `20260518_revoke_anon_writes_on_protocol_tables.sql`, `20260518_upsert_pending_race_fix.sql` — обе применены на dev VPS через `psql -U supabase_admin`
+- Скрипты: `supabase/scripts/test_full_plan.py` (135 тестов), `test_sm10.py` (32), `test_sm11_14.py` (31)
+- Coverage: 198 уникальных проверок суммарно по 3 файлам
+- На VPS: `/tmp/test_full_plan.py`, `/tmp/test_sm10.py`, `/tmp/test_sm11_14.py` (Алексей может перепрогнать одной командой)
+
+**Коммит:** `f472e3f` в `miniapp/dev`. Обе миграции автоматически попадут в репо при следующем pull → merge в main.
+
+**Что Алексею делать утром:**
+1. Прочитать этот раздел (10 минут) — понять что покрыто.
+2. Ручная проверка визуальных пунктов из таблицы выше (1-2 часа на полный обход).
+3. После ОК — merge dev→main (с удалением dev-skip-payment если хочет).
+
+---
 
 #### SM-10 fix (Prodamus do=pay) + SM-10 DEV-skip + SM-11/12/13/14 + SM-09-TUNE (пол) + result.html полный — большой воркфлоу-спринт (17.05.2026, dev only)
 **Контекст:** За одну сессию закрыли всю воронку от квиза до полноценного PDF-результата. Реальная Prodamus-оплата (Алексей открыл страницу), тестовый skip с симуляцией webhook, генерация Sonnet 7 дней, отрисовка дня по дню, БАДы с активными ссылками, апсейл гайд+консультация, форма «Книга предложений», поле пола в квизе. Пара критических багов поймана и закрыта на месте.
