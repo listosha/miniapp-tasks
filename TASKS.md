@@ -326,6 +326,19 @@ _Свободно. Следующее по приоритету — **SM-10** (P
 
 ### ✅ Выполнено
 
+#### SM-FB: письмо «Как вам меню?» покупателям + pg_cron (27.05.2026)
+**Контекст:** Запрос Алексея 23.05 — после первых реальных покупок меню автоматически писать покупателю «как меню?» через 1–2 дня, собирать отзывы в ответных письмах.
+
+**Что сделано:**
+- **EF `send-menu-feedback`** (`supabase/functions/send-menu-feedback/index.ts`) — шлёт письмо тем, кто оплатил в окне `window_hours_min..max` назад и кому ещё не слали (`feedback_email_sent_at IS NULL`). Идемпотентность: метка ставится сразу после ok от Resend. `dry_run=true` — список адресатов без отправки. Auth = `app.admin_cron_token` (= service role key). Фильтр тестовых адресов (listosha@*, unknown@example.com).
+- **Миграция** `20260523_menu_feedback_email_sent_at.sql` — колонка `feedback_email_sent_at timestamptz` + partial-индекс на pending. Применена в проде (через `supabase_admin` — таблицу owns supabase_admin, не postgres).
+- **Форвардер reg.ru не понадобился.** MX `listoshenkov.ru` → mx1/mx2.hosting.reg.ru, но приёмного ящика для домена нет (в ISPmanager `server293` домена нет), заводить муторно. Решение: From остаётся `menu@listoshenkov.ru` (верифицирован в Resend для отправки, DMARC ок), **Reply-To = `listosha@list.ru`** — ответы покупателей летят сразу в личную почту, без ящика/форвардера.
+- **Текст** на «вы», тёплый: «На днях вы получили меню… Спасибо вам за доверие! — Алексей». Тема «Как вам меню?».
+- **Отправлено 3 реальным покупателям** (upakbaza@yandex.ru, romanyelena@yandex.ru, alla-67@mail.ru) одноразовым прогоном (окно 0–72ч): `{sent:3, failed:[]}`.
+- **pg_cron `menu-feedback-request`** (jobid 5): `30 7 * * *` = 10:30 МСК ежедневно, окно 24–72ч (шире плана 24–48 — устойчивость к пропущенному прогону; дубли отсекает `feedback_email_sent_at`). Паттерн `net.http_post` идентичен `private-daily-summary`.
+
+**Репо:** EF + миграция закоммичены в `miniapp@dev` (466e80e). EF задеплоена на VPS напрямую (`/opt/beget/supabase/volumes/functions/send-menu-feedback/`).
+
 #### SM-08-TUNE-2 — target_calories на сервере + чистка raw из AI payload (18.05.2026, dev only)
 **Контекст:** Закрытие открытого пункта из ночного QA-отчёта. Два связанных бага одним коммитом.
 
