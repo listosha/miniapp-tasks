@@ -35,13 +35,17 @@
 - EF `partner-redirect`: код→referral→лог `clicks`→302 на цель с `?ref` + first-party кука `pr_ref`/`pr_cid` на `.listoshenkov.ru` (90 дн). Подключён через nginx `dev.listoshenkov.ru/r/`. Протестирован end-to-end. Прод-выкат: тот же nginx-сниппет в `listoshenkov.ru` (в спеке). IP клиента маскируется SNI-stream (некритично).
 - **Промокоды** уточнены: вариант A (скидку режем на нашем чекауте), БЕЗ лимитов/срока (Алексей: продажа со скидкой = продажа), потолок = пул. Генерация уже есть (тип «Промокод/универсальный»). Применение — в этапе 3.
 
+**PARTNER-03 — атрибуция МЕНЮ-воронки + промокоды (пилот)** (31.05, dev)
+- preview.html ловит ref (?ref/кука pr_ref) → `resolve_ref` → режет цену + промо-скидка в UI + `_param_ref`/`_param_senior` в Prodamus.
+- prodamus-webhook `attributePartner()`: контакт→identity→анти-самореферал→first-touch→`orders` снимком (пул от базы, пенсионер 600 не стакается). Тест-хук `__test_attr` (service-key).
+- Протестировано на dev: скидка/атрибуция/идемпотентность/анти-self/first-touch. **preview.html — dev only, прод НЕ трогал** (этап 3 не в main).
+
 ### ⏳ Дальше
 
-- **Этап 3** — проброс `_param_ref` в Prodamus (3 билдера: preview.html, гайды index.html, лендинги /course/ /zametki/) + атрибуция в вебхуке (резолв identity → orders с buyer-снимком, пул от ФАКТ. суммы, пенсионер −50% не стакается) + применение промокодов (срез цены по коду). Пилот на меню.
-- **Прод-выкат** партнёрки: nginx `/r/` на listoshenkov.ru + кабинет на прод-адрес + cherry-pick админки в main (без курса).
+- **Этап 3 — курс/гайды:** тот же `_param_ref` в билдерах оплаты гайдов (index.html) и лендингов /course/ /zametki/ (отдельный хост /var/www/landing) + ветки атрибуции в handleCoursePurchase/гайд-ветке вебхука.
+- **Прод-выкат партнёрки:** nginx `/r/` на listoshenkov.ru; cherry-pick preview.html(этап3)+EF в main (без курса); кабинет на прод-адрес; cherry-pick админки.
 - **Q1 (курс)** — мягкий лид-магнит в заметке (опц.).
-- **Q1 (курс)** — мягкий лид-магнит в заметке (опц.).
-- **Лендинги** `/course/` и `/zametki/` — отдельный хост `/var/www/landing`, НЕ в репо miniapp.
+- **Лендинги** `/course/` `/zametki/` — отдельный хост `/var/www/landing`, НЕ в репо miniapp.
 
 ---
 
