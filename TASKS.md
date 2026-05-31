@@ -38,14 +38,18 @@
 **PARTNER-03 — атрибуция МЕНЮ-воронки + промокоды (пилот)** (31.05, dev)
 - preview.html ловит ref (?ref/кука pr_ref) → `resolve_ref` → режет цену + промо-скидка в UI + `_param_ref`/`_param_senior` в Prodamus.
 - prodamus-webhook `attributePartner()`: контакт→identity→анти-самореферал→first-touch→`orders` снимком (пул от базы, пенсионер 600 не стакается). Тест-хук `__test_attr` (service-key).
-- Протестировано на dev: скидка/атрибуция/идемпотентность/анти-self/first-touch. **preview.html — dev only, прод НЕ трогал** (этап 3 не в main).
+- Протестировано на dev (скидка/атрибуция/идемпотентность/анти-self/first-touch) + полный путь через dev-skip (orders→кабинет→админка).
+
+**МЕНЮ В ПРОДЕ + курс-бэкенд** (31.05)
+- **Прод (в):** nginx `/r/{code}` на `listoshenkov.ru` (302→app/menu/quiz.html?ref + кука .listoshenkov.ru); etap-3 preview.html в `main` (ref-gated — обычные покупатели не затронуты). Меню-воронка партнёрки ЖИВАЯ в проде end-to-end.
+- **Курс (б):** бэкенд-атрибуция в `handleCoursePurchase` готова (пул 4000). Лендинг /course/ = вейтлист без оплаты; курс покупается в app (`courseBuy`). Звено `courseBuy`→`_param_ref` из куки — ОТЛОЖЕНО (courseBuy активно меняется в курс-дельте).
+- Гайды — НЕ в скоупе (нет модели пула, ТЗ §1).
 
 ### ⏳ Дальше
 
-- **Этап 3 — курс/гайды:** тот же `_param_ref` в билдерах оплаты гайдов (index.html) и лендингов /course/ /zametki/ (отдельный хост /var/www/landing) + ветки атрибуции в handleCoursePurchase/гайд-ветке вебхука.
-- **Прод-выкат партнёрки:** nginx `/r/` на listoshenkov.ru; cherry-pick preview.html(этап3)+EF в main (без курса); кабинет на прод-адрес; cherry-pick админки.
-- **Q1 (курс)** — мягкий лид-магнит в заметке (опц.).
-- **Лендинги** `/course/` `/zametki/` — отдельный хост `/var/www/landing`, НЕ в репо miniapp.
+- **courseBuy → `_param_ref`** (из куки pr_ref) — когда стабилизируется курс-код. Замкнёт курс-воронку.
+- **Прод-URL кабинета/админки** (сейчас dev-URL против общей БД — работают, но партнёрам давать dev-ссылку неудобно).
+- **Q1** — мягкий лид-магнит в заметке (опц.).
 
 ---
 
