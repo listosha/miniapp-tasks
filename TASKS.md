@@ -9,6 +9,15 @@
 
 ---
 
+## 🎓 КУРС «Гормональный баланс» — ЗАПУЩЕН В ПРОД (31.05.2026)
+
+По решению Алексея — полный запуск под публикацию видео.
+- **Курс в прод-app** (app.listoshenkov.ru): промоушн dev→main (merge 5b94bb0), раздел курса виден всем (не is-dev gated). EF/миграции уже на общем бэкенде.
+- **Лендинг listoshenkov.ru/course/ активен**: цены 8000 (Изучение) / 18000 (С разбором), кнопки «Купить» → Prodamus (слаги course_hormones_study/review + `_param_ref` из куки pr_ref → атрибуция партнёра).
+- **products** заполнены: 18=8000 study, 19=18000 review, is_active=true.
+- **Алексей** (user 1, admin): уже владеет курсом (purchases 18+19, tier with_review) + видит партнёрскую админку в проде.
+- **Гочи/хвосты:** (1) доступ landing-покупателей = claim-by-email в app (orphan→вход с тем же email); (2) кабинет partner magic-link ведёт на dev (env PARTNER_CABINET_BASE); (3) in-app courseBuy ещё не шлёт `_param_ref`. Откат курса: revert 5b94bb0.
+
 ## 🤝 Партнёрская программа (нутрициологи) — итерация 1
 
 > ТЗ v1.1 (31.05.2026). Спека в репо: `docs/partner-program-spec.md`. Атрибуция по КОНТАКТУ (email/phone), first-touch, окно 90 дней. Пул = 50% базы, партнёр делит между скидкой клиенту и комиссией. Выплаты помесячно, порог 2000 ₽.
