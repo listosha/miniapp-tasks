@@ -118,7 +118,7 @@
 ### 📋 Осталось
 - [x] EN-бот **@listoshenkov_en_bot** создан 23.10: `TELEGRAM_BOT_TOKEN_EN` в env functions, описание и кнопка меню «Open» → `dev.listoshenkov.ru/en/` (после мержа в main переключить на app). Main App в BotFather ставит Алексей.
 - [ ] Первая живая оплата иностранной картой: проверить, какие поля шлёт Prodamus (логи `EN purchase:`).
-- [ ] Форма Prodamus на русском: вопрос в поддержку отправлен 23.10, ждём ответа.
+- [x] Английская касса Prodamus `nutriciologist-eng.payform.ru` (23.10, только зарубежные карты; чек по закону на русском и в рублях). EN-приложение переключено на dev, `010838a`. Тот же ли ключ подписи, покажет первая живая оплата.
 - [ ] Выкладка `/en/` + `free-guides/en/` в main — только по «ок» (cherry-pick, не мерж всего dev).
 - [ ] Недельные пачки заметок EN (`listoshenkov-pro/content/content-queue.md`).
 
