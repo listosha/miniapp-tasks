@@ -116,9 +116,9 @@
 - Прогон в трёх ролях (гость / вошедший / купивший) на dev — зелёный; тестовые покупки удалены.
 
 ### 📋 Осталось
-- [ ] Алексей: создать EN-бота в @BotFather (токен НЕ в чат) → `TELEGRAM_BOT_TOKEN_EN` в env functions, кнопка меню → `/en/`.
+- [x] EN-бот **@listoshenkov_en_bot** создан 23.10: `TELEGRAM_BOT_TOKEN_EN` в env functions, описание и кнопка меню «Open» → `dev.listoshenkov.ru/en/` (после мержа в main переключить на app). Main App в BotFather ставит Алексей.
 - [ ] Первая живая оплата иностранной картой: проверить, какие поля шлёт Prodamus (логи `EN purchase:`).
-- [ ] Форма Prodamus на русском — спросить поддержку про английский интерфейс кассы.
+- [ ] Форма Prodamus на русском: вопрос в поддержку отправлен 23.10, ждём ответа.
 - [ ] Выкладка `/en/` + `free-guides/en/` в main — только по «ок» (cherry-pick, не мерж всего dev).
 - [ ] Недельные пачки заметок EN (`listoshenkov-pro/content/content-queue.md`).
 
