@@ -121,6 +121,10 @@
 - [x] Английская касса Prodamus `nutriciologist-eng.payform.ru` (23.10, только зарубежные карты; чек по закону на русском и в рублях). EN-приложение переключено на dev, `010838a`. Тот же ли ключ подписи, покажет первая живая оплата.
 - [ ] Выкладка `/en/` + `free-guides/en/` в main — только по «ок» (cherry-pick, не мерж всего dev).
 - [x] 23.10 по просмотру с телефона (dev `2c4c6f0`, `df1799c`): шапки не липкие на всех экранах, включая читалку плейбука; инструкция «на экран Домой» под iPhone (Safari 26+ / старый / Chrome) и Android (Chrome / Samsung / Firefox), кнопка «Show me where» со стрелкой; в Telegram — одна кнопка (addToHomeScreen). Проверить на живых iPhone и Android.
+- [x] 23.10 круг «Open in browser» в Telegram на iPhone (dev `95dbb9a`): встроенный браузер Telegram (есть TelegramWebviewProxy, нет initData/platform) больше не считается мини-приложением. На iPhone в мини-приложении addToHomeScreen = unsupported (по событиям Алексея), поэтому путь такой: Copy link → Safari → по `ref=tg_install` шаги открываются сами. Во встроенном браузере: «Open in Safari» (iOS) / ⋮ → Open in Chrome (Android). Баннер пишет tgv/tgp/hs/tgb.
+- [ ] **Отложено 23.10, вернуться:** проверить установку на живых телефонах — iPhone Safari 18 и 26, Telegram iOS (Copy link → Safari), Telegram Android (addToHomeScreen одной кнопкой?), Android Chrome/Samsung. Открытый вопрос: срабатывает ли `x-safari-` из встроенного браузера Telegram. Смотреть события install_* с app=en.
+- [ ] После проверки — перенести ту же установку (шаги под устройство, стрелка, Telegram) в русское приложение, по «ок».
+- [ ] Алексей: в BotFather Configure Mini App → Main App = dev /en/ (для `?startapp=`); аватар бота.
 - [ ] Недельные пачки заметок EN (`listoshenkov-pro/content/content-queue.md`).
 
 ---
